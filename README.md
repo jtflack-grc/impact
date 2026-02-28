@@ -14,26 +14,6 @@ IMPACT! is designed as a showpiece for both sides of the risk coin—FAIR and FM
 - Geographic context with 3D globe visualization
 - In-app FMVA spreadsheet for hands-on financial modeling
 
-## Run locally
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173).
-
-## Build
-
-```bash
-npm run build
-npm run preview
-```
-
-## Deploy to GitHub Pages
-
-- Push to `main` or `master`; the workflow builds and deploys to GitHub Pages.
-- In repo **Settings → Pages**, set **Source** to **GitHub Actions**.
 
 ## Technologies
 
@@ -51,21 +31,7 @@ npm run preview
 
 This app uses Handsontable under a non-commercial and evaluation license. See [Handsontable License](https://handsontable.com/docs/license-key/) for details.
 
-## Release Checklist
 
-Before releasing or sharing the app:
-
-- [ ] Run `npm run build` to ensure the build succeeds without errors
-- [ ] Run `npm run preview` and test the built version locally
-- [ ] Smoke test:
-  - [ ] Open app, dismiss welcome popup
-  - [ ] Complete at least one scenario (make choices, see results)
-  - [ ] Open Credits popup and verify content displays correctly
-  - [ ] Open FMVA Model tab and verify spreadsheet loads and is interactive
-  - [ ] Test "Play again" from end screen to ensure state resets properly
-- [ ] Verify responsive behavior on mobile/tablet (layout stacks, touch targets work)
-- [ ] Check accessibility (keyboard navigation, screen reader compatibility)
-- [ ] Ensure no console errors or warnings in browser dev tools
 
 ## Educational Purpose
 
