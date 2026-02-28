@@ -1,0 +1,48 @@
+{
+  "id": "ifs-ransomware-pivot",
+  "title": "IFS Ransomware Pivot",
+  "scenes": [
+    { "id": "inheritance", "label": "Inheritance", "order": 1 },
+    { "id": "exposure", "label": "Exposure", "order": 2 },
+    { "id": "door", "label": "Door", "order": 3 },
+    { "id": "pivot", "label": "Pivot", "order": 4 },
+    { "id": "silence", "label": "Silence", "order": 5 },
+    { "id": "recovery", "label": "Recovery", "order": 6 },
+    { "id": "board", "label": "Board View", "order": 7 },
+    { "id": "artifact", "label": "Artifact", "order": 8 }
+  ],
+  "variables": [
+    { "id": "TEF", "label": "Threat Event Frequency", "distribution": "triangular" },
+    { "id": "P_InitialAccess", "label": "P(Initial Access)", "distribution": "triangular" },
+    { "id": "P_IFSReachable", "label": "P(IFS Reachable)", "distribution": "triangular" },
+    { "id": "P_WriteAccess", "label": "P(Write Access)", "distribution": "triangular" },
+    { "id": "T_DetectDays", "label": "Time to Detect (days)", "distribution": "triangular" },
+    { "id": "T_RecoveryDays", "label": "Time to Recover (days)", "distribution": "triangular" },
+    { "id": "Cost_IR", "label": "Incident Response Cost", "distribution": "triangular" },
+    { "id": "Cost_Recovery", "label": "Recovery Cost", "distribution": "triangular" },
+    { "id": "Cost_DowntimePerDay", "label": "Downtime Cost/Day", "distribution": "triangular" },
+    { "id": "P_Secondary", "label": "P(Secondary Loss)", "distribution": "triangular" }
+  ],
+  "controls": [
+    { "id": "ctrl-ifs-minimize", "group": "Access Pathways", "label": "IFS Share Minimization & Segmentation", "variableIds": ["P_IFSReachable"] },
+    { "id": "ctrl-smb-harden", "group": "Access Pathways", "label": "SMB/NetServer Hardening", "variableIds": ["P_IFSReachable"] },
+    { "id": "ctrl-exit-points", "group": "Access Pathways", "label": "Exit Point Governance", "variableIds": ["P_IFSReachable", "P_WriteAccess"] },
+    { "id": "ctrl-least-priv", "group": "Privilege & Authority", "label": "Least Privilege on IFS", "variableIds": ["P_WriteAccess"] },
+    { "id": "ctrl-service-acct", "group": "Privilege & Authority", "label": "Service Account Governance", "variableIds": ["P_WriteAccess", "P_IFSReachable"] },
+    { "id": "ctrl-auth-discipline", "group": "Privilege & Authority", "label": "Authority List Discipline", "variableIds": ["P_WriteAccess"] },
+    { "id": "ctrl-qaudjrn", "group": "Detection & Logging", "label": "QAUDJRN Coverage & Alerting", "variableIds": ["T_DetectDays", "P_Secondary"] },
+    { "id": "ctrl-siem", "group": "Detection & Logging", "label": "SIEM Correlation", "variableIds": ["T_DetectDays", "P_Secondary"] },
+    { "id": "ctrl-immutable-backup", "group": "Resilience & Recovery", "label": "Immutable/Offline Backups", "variableIds": ["T_RecoveryDays", "Cost_Recovery"] },
+    { "id": "ctrl-restore-test", "group": "Resilience & Recovery", "label": "Restore Testing & RTO", "variableIds": ["T_RecoveryDays", "Cost_Recovery"] }
+  ],
+  "narrativeKeys": {
+    "inheritance": "choose_archetype",
+    "exposure": "ifs_posture",
+    "door": "compromise_path",
+    "pivot": "write_access",
+    "silence": "detection_secondary",
+    "recovery": "backups_restore",
+    "board": "p90_ebitda",
+    "artifact": "exports"
+  }
+}

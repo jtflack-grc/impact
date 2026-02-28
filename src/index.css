@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Guarantee something is visible even if Tailwind or JS is slow/broken */
+html, body {
+  margin: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+body {
+  @apply bg-war-bg text-war-white antialiased font-sans font-normal;
+}
+
+/* Fallback so content is never invisible */
+body {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+h1, h2, h3 {
+  @apply font-medium tracking-tight;
+}

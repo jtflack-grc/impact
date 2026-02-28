@@ -1,0 +1,69 @@
+[
+  {
+    "id": "mid-mfg",
+    "displayName": "Mid-Cap Manufacturing (Generalized)",
+    "industry": "Manufacturing",
+    "annualRevenue": 500000000,
+    "ebitdaMargin": 0.14,
+    "cash": 45000000,
+    "debt": 120000000,
+    "downtimeImpactFactor": 0.4,
+    "dataSensitivityTier": "high",
+    "modeledInsurance": {
+      "deductible": 250000,
+      "coverageLimit": 10000000,
+      "annualPremium": 180000
+    },
+    "geography": {
+      "primaryNodes": [
+        { "id": "hq", "label": "Corporate HQ", "lat": 41.8, "lon": -87.6 },
+        { "id": "dc", "label": "Data Center", "lat": 41.9, "lon": -87.7 }
+      ]
+    },
+    "sourceNotes": "Generalized from public 10-K; education only."
+  },
+  {
+    "id": "regional-fin",
+    "displayName": "Regional Financial Services (Generalized)",
+    "industry": "Financial Services",
+    "annualRevenue": 800000000,
+    "ebitdaMargin": 0.22,
+    "cash": 120000000,
+    "debt": 80000000,
+    "downtimeImpactFactor": 0.6,
+    "dataSensitivityTier": "critical",
+    "modeledInsurance": {
+      "deductible": 500000,
+      "coverageLimit": 25000000,
+      "annualPremium": 420000
+    },
+    "geography": {
+      "primaryNodes": [
+        { "id": "hq", "label": "Corporate HQ", "lat": 40.7, "lon": -74.0 }
+      ]
+    },
+    "sourceNotes": "Generalized from public filings; education only."
+  },
+  {
+    "id": "smb-retail",
+    "displayName": "SMB Retail / Distribution (Generalized)",
+    "industry": "Retail",
+    "annualRevenue": 120000000,
+    "ebitdaMargin": 0.08,
+    "cash": 8000000,
+    "debt": 25000000,
+    "downtimeImpactFactor": 0.35,
+    "dataSensitivityTier": "medium",
+    "modeledInsurance": {
+      "deductible": 100000,
+      "coverageLimit": 5000000,
+      "annualPremium": 85000
+    },
+    "geography": {
+      "primaryNodes": [
+        { "id": "hq", "label": "Corporate HQ", "lat": 33.7, "lon": -84.4 }
+      ]
+    },
+    "sourceNotes": "Generalized; education only."
+  }
+]
