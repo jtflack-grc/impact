@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useScenarioStore } from "../../store/scenarioStore";
 import { EduTooltip } from "../EduTooltip";
 import { useStore } from "../../store";
+import { dcfFromCashFlows, buildProjectedFcf } from "../../model/dcf";
 
 interface SensitivityModuleProps {
   isExpanded: boolean;
@@ -40,6 +41,22 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
   const baseAnnualBenefit = baseLossProfile.grossP90 - baseLossProfile.netP90;
   const baseControlCost = Math.max(2, scenario.company.annualRevenueMillions * 0.002 * 3);
   const baseNPV = npv(baseControlCost, baseAnnualBenefit);
+
+  // DCF base equity and WACC-stressed equity for "Equity Value (DCF) Δ" column
+  const revenue = scenario.company.annualRevenueMillions;
+  const marginPercent = scenario.company.ebitdaMarginPercent;
+  const projectedFcf = useMemo(() => buildProjectedFcf(revenue, marginPercent), [revenue, marginPercent]);
+  const terminalGrowth = 0.025;
+  const baseEquity = useMemo(
+    () => dcfFromCashFlows(projectedFcf, terminalGrowth, effectiveWacc).equityValue,
+    [projectedFcf, effectiveWacc]
+  );
+  const waccHigh = effectiveWacc + 0.01;
+  const equityAtHighWacc = useMemo(
+    () => dcfFromCashFlows(projectedFcf, terminalGrowth, waccHigh).equityValue,
+    [projectedFcf, waccHigh]
+  );
+  const equityValueDeltaWacc = baseEquity - equityAtHighWacc; // positive when high WACC lowers value
 
   // Sensitivity scenarios (1D table, grounded in FAIR + FMVA)
   const sensitivityData = useMemo(() => {
@@ -89,6 +106,7 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
         base: formatMillions(baseNPV),
         high: formatMillions(severityHighNPV),
         equityImpact: formatMillions(severityHighNPV - severityLowNPV),
+        equityValueDcfDelta: "—",
       },
       {
         driver: "Frequency",
@@ -96,6 +114,7 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
         base: formatMillions(baseNPV),
         high: formatMillions(freqHighNPV),
         equityImpact: formatMillions(freqHighNPV - freqLowNPV),
+        equityValueDcfDelta: "—",
       },
       {
         driver: "Insurance Limit",
@@ -103,6 +122,7 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
         base: formatMillions(baseNPV),
         high: formatMillions(insuranceHighNPV),
         equityImpact: formatMillions(insuranceHighNPV - insuranceLowNPV),
+        equityValueDcfDelta: "—",
       },
       {
         driver: "WACC",
@@ -110,9 +130,10 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
         base: formatMillions(baseNPV),
         high: formatMillions(waccHighNPV),
         equityImpact: formatMillions(waccHighNPV - baseNPV),
+        equityValueDcfDelta: formatMillions(equityValueDeltaWacc),
       },
     ];
-  }, [baseLossProfile, baseNPV, baseControlCost, baseAnnualBenefit]);
+  }, [baseLossProfile, baseNPV, baseControlCost, baseAnnualBenefit, equityValueDeltaWacc]);
 
   if (!isExpanded) {
     return (
@@ -168,6 +189,7 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
               <th className="text-right py-2 px-2 text-war-muted font-semibold">Base NPV</th>
               <th className="text-right py-2 px-2 text-war-muted font-semibold">High NPV</th>
               <th className="text-right py-2 px-2 text-war-muted font-semibold">Δ NPV (High − Low)</th>
+              <th className="text-right py-2 px-2 text-war-muted font-semibold">Equity Value (DCF) Δ</th>
             </tr>
           </thead>
           <tbody>
@@ -178,6 +200,7 @@ export function SensitivityModule({ isExpanded, onToggle }: SensitivityModulePro
                 <td className="text-right py-2 px-2 text-war-white font-semibold">{row.base}</td>
                 <td className="text-right py-2 px-2 text-war-white">{row.high}</td>
                 <td className="text-right py-2 px-2 text-emerald-400">{row.equityImpact}</td>
+                <td className="text-right py-2 px-2 text-war-muted">{row.equityValueDcfDelta}</td>
               </tr>
             ))}
           </tbody>

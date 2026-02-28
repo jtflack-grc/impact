@@ -4,6 +4,7 @@ import { useScenarioStore } from "../store/scenarioStore";
 import { EduTooltip } from "./EduTooltip";
 import { DeepFinanceMode } from "./DeepFinanceMode/DeepFinanceMode";
 import { useStore } from "../store";
+import { dcfFromCashFlows } from "../model/dcf";
 
 // Lazy load FMVA spreadsheet (heavy component with Handsontable)
 const FmvaSpreadsheet = lazy(() => import("./FmvaSpreadsheet").then(module => ({ default: module.FmvaSpreadsheet })));
@@ -58,25 +59,6 @@ function profitabilityIndex(controlCost: number, annualBenefit: number, years = 
     pvBenefits += annualBenefit / Math.pow(1 + discountRate, t);
   }
   return pvBenefits / controlCost;
-}
-
-function dcfFromCashFlows(
-  cashFlows: number[],
-  terminalGrowth: number,
-  discountRate: number
-): { enterpriseValue: number; equityValue: number } {
-  if (!cashFlows.length || discountRate <= terminalGrowth) {
-    return { enterpriseValue: 0, equityValue: 0 };
-  }
-  let pv = 0;
-  for (let t = 0; t < cashFlows.length; t++) {
-    pv += cashFlows[t] / Math.pow(1 + discountRate, t + 1);
-  }
-  const lastCf = cashFlows[cashFlows.length - 1];
-  const terminalValue = (lastCf * (1 + terminalGrowth)) / (discountRate - terminalGrowth);
-  const pvTerminal = terminalValue / Math.pow(1 + discountRate, cashFlows.length);
-  const enterpriseValue = pv + pvTerminal;
-  return { enterpriseValue, equityValue: enterpriseValue };
 }
 
 export function MetricsDashboard() {

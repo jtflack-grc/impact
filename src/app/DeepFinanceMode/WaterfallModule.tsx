@@ -24,33 +24,17 @@ export function WaterfallModule({ isExpanded, onToggle }: WaterfallModuleProps) 
     };
   }, [scenario.lossProfile]);
 
-  // Waterfall data: cumulative erosion from Gross P90 to Net P90
-  // Note: The breakdown between insurance and controls is illustrative
-  // In practice, this would come from actual insurance limits and control effectiveness data
+  // Waterfall data: derived from scenario Gross P90 and Net P90 only.
+  // The model does not split control vs insurance; we show one combined "Insurance & other mitigation" step.
   const waterfallData = useMemo(() => {
     const grossP90 = dynamicLossProfile.grossP90;
     const netResidual = dynamicLossProfile.netP90;
-    const totalAbsorption = grossP90 - netResidual;
-    
-    // Illustrative breakdown: assume controls reduce exposure, insurance covers remainder
-    // In a rigorous model, this would be calculated from actual control effectiveness and insurance limits
-    const controlImpact = totalAbsorption * 0.5; // Illustrative: 50% from controls
-    const insuranceAbsorption = totalAbsorption * 0.5; // Illustrative: 50% from insurance
-    const recoveryGains = 0; // No recovery gains in current model
-
-    // Cumulative values for waterfall
-    const start = grossP90;
-    const afterInsurance = start - insuranceAbsorption;
-    const afterControls = afterInsurance - controlImpact;
-    const afterRecovery = afterControls + recoveryGains;
-    const end = netResidual;
+    const insuranceAndOther = Math.max(0, Math.min(grossP90 - netResidual, grossP90));
 
     return [
-      { step: "Gross P90", value: start, cumulative: start, fill: "#ef4444" },
-      { step: "Insurance", value: -insuranceAbsorption, cumulative: afterInsurance, fill: "#f59e0b" },
-      { step: "Controls", value: -controlImpact, cumulative: afterControls, fill: "#3b82f6" },
-      { step: "Recovery", value: recoveryGains, cumulative: afterRecovery, fill: "#10b981" },
-      { step: "Net Exposure", value: end, cumulative: end, fill: "#8b5cf6" },
+      { step: "Gross P90", value: grossP90, cumulative: grossP90, fill: "#ef4444" },
+      { step: "Insurance & other mitigation", value: -insuranceAndOther, cumulative: netResidual, fill: "#f59e0b" },
+      { step: "Net P90", value: netResidual, cumulative: netResidual, fill: "#8b5cf6" },
     ];
   }, [dynamicLossProfile]);
 
@@ -83,7 +67,7 @@ export function WaterfallModule({ isExpanded, onToggle }: WaterfallModuleProps) 
           <h4 className="text-xs font-semibold text-war-white/90">P90 Waterfall Decomposition</h4>
           <EduTooltip
             title="Capital Erosion Waterfall"
-            body="Shows how Gross P90 loss erodes through insurance absorption, control impact, and recovery gains to arrive at Net residual exposure. The breakdown between controls and insurance is illustrative—in practice, this would be calculated from actual control effectiveness metrics and insurance policy limits. This visualization helps finance teams understand the layers of risk mitigation and residual exposure."
+            body="Derived from scenario Gross P90 and Net P90. The step from Gross to Net is shown as a single 'Insurance & other mitigation' bucket because the model does not separately attribute control vs insurance; both are reflected in the scenario's net residual. This keeps the decomposition honest and defensible."
             badge="FAIR"
           />
         </div>

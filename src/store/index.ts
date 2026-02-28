@@ -13,6 +13,83 @@ import type {
 
 export type { SceneId, Perspective, Archetype, ControlMaturity, ControlDef, InputValue, AssumptionEntry, SimulationResults, PostureSnapshot } from "./types";
 
+/** Deep Finance inputs for DSCR (credit-shaped) */
+export interface DscrInputs {
+  totalDebt: number;
+  interestRate: number;
+  amortTermYears: number;
+  taxRate: number;
+  capex: number;
+  cashTaxes: number;
+  otherAdjustments: number;
+  covenantThreshold: number;
+}
+
+/** Deep Finance inputs for WACC */
+export interface WaccInputs {
+  riskFreeRate: number;
+  equityRiskPremium: number;
+  unleveredBeta: number;
+  costOfDebt: number;
+  taxRate: number;
+  debtWeight: number;
+  equityWeight: number;
+}
+
+export interface DeepFinanceState {
+  dscrInputs: DscrInputs;
+  waccInputs: WaccInputs;
+}
+
+const DEEP_FINANCE_STORAGE_KEY = "impact-deep-finance";
+
+const defaultDscrInputs: DscrInputs = {
+  totalDebt: 50,
+  interestRate: 0.06,
+  amortTermYears: 5,
+  taxRate: 0.25,
+  capex: 2.5,
+  cashTaxes: 10,
+  otherAdjustments: 0,
+  covenantThreshold: 1.2,
+};
+
+const defaultWaccInputs: WaccInputs = {
+  riskFreeRate: 0.035,
+  equityRiskPremium: 0.06,
+  unleveredBeta: 1.0,
+  costOfDebt: 0.05,
+  taxRate: 0.25,
+  debtWeight: 0.3,
+  equityWeight: 0.7,
+};
+
+function loadDeepFinanceFromStorage(): DeepFinanceState {
+  try {
+    const raw = typeof localStorage !== "undefined" ? localStorage.getItem(DEEP_FINANCE_STORAGE_KEY) : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as DeepFinanceState;
+      return {
+        dscrInputs: { ...defaultDscrInputs, ...parsed.dscrInputs },
+        waccInputs: { ...defaultWaccInputs, ...parsed.waccInputs },
+      };
+    }
+  } catch {
+    // ignore
+  }
+  return { dscrInputs: defaultDscrInputs, waccInputs: defaultWaccInputs };
+}
+
+function persistDeepFinance(state: DeepFinanceState): void {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(DEEP_FINANCE_STORAGE_KEY, JSON.stringify(state));
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export interface AppState {
   // Selection
   archetype: Archetype | null;
@@ -40,7 +117,7 @@ export interface AppState {
 
   // Deep Finance / valuation
   deepFinanceWacc: number | null;
-
+  deepFinance: DeepFinanceState;
 
   // Actions
   setArchetype: (a: Archetype | null) => void;
@@ -53,6 +130,8 @@ export interface AppState {
   setSimIterationCount: (n: number) => void;
   setSnapshot: (which: "current" | "target", s: PostureSnapshot | null) => void;
   setDeepFinanceWacc: (wacc: number | null) => void;
+  setDscrInputs: (partial: Partial<DscrInputs>) => void;
+  setWaccInputs: (partial: Partial<WaccInputs>) => void;
 }
 
 const defaultInputs: Record<string, InputValue> = {
@@ -68,6 +147,8 @@ const defaultInputs: Record<string, InputValue> = {
   P_Secondary: { min: 0.05, mode: 0.15, max: 0.35 },
 };
 
+const initialDeepFinance = loadDeepFinanceFromStorage();
+
 export const useStore = create<AppState>((set) => ({
   archetype: null,
   perspective: "Risk",
@@ -79,6 +160,7 @@ export const useStore = create<AppState>((set) => ({
   simIterationCount: 2000,
   snapshots: { current: null, target: null },
   deepFinanceWacc: null,
+  deepFinance: initialDeepFinance,
 
   setArchetype: (archetype) => set({ archetype }),
   setPerspective: (perspective) => set({ perspective }),
@@ -105,4 +187,22 @@ export const useStore = create<AppState>((set) => ({
       snapshots: { ...state.snapshots, [which]: snapshot },
     })),
   setDeepFinanceWacc: (deepFinanceWacc) => set({ deepFinanceWacc }),
+  setDscrInputs: (partial) =>
+    set((state) => {
+      const next = {
+        ...state.deepFinance,
+        dscrInputs: { ...state.deepFinance.dscrInputs, ...partial },
+      };
+      persistDeepFinance(next);
+      return { deepFinance: next };
+    }),
+  setWaccInputs: (partial) =>
+    set((state) => {
+      const next = {
+        ...state.deepFinance,
+        waccInputs: { ...state.deepFinance.waccInputs, ...partial },
+      };
+      persistDeepFinance(next);
+      return { deepFinance: next };
+    }),
 }));

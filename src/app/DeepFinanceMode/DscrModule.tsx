@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useScenarioStore } from "../../store/scenarioStore";
+import { useStore } from "../../store";
 import { EduTooltip } from "../EduTooltip";
 
 interface DscrModuleProps {
@@ -9,36 +10,41 @@ interface DscrModuleProps {
 
 export function DscrModule({ isExpanded, onToggle }: DscrModuleProps) {
   const scenario = useScenarioStore((s) => s.scenarios[s.currentScenarioIndex]);
-
-  // Derive dynamic loss profile for Net P90
-  // FAIR: Loss Magnitude comes from base scenario (Monte Carlo results)
-  const dynamicLossProfile = useMemo(() => {
-    const base = scenario.lossProfile;
-    return {
-      netP90: base.netP90Millions,
-    };
-  }, [scenario.lossProfile]);
-
-  // Inputs (editable in Deep Mode, pre-filled from engine)
-  const [cashTaxes, setCashTaxes] = useState(
-    (scenario.company.annualRevenueMillions * (scenario.company.ebitdaMarginPercent / 100)) * 0.25
-  );
-  const [capex, setCapex] = useState(scenario.company.annualRevenueMillions * 0.05);
-  const [otherAdjustments, setOtherAdjustments] = useState(0);
-  const [interestExpense, setInterestExpense] = useState(scenario.company.annualRevenueMillions * 0.02);
-  const [principalRepayment, setPrincipalRepayment] = useState(scenario.company.annualRevenueMillions * 0.01);
-  const [covenantThreshold, setCovenantThreshold] = useState(1.2);
+  const dscrInputs = useStore((s) => s.deepFinance.dscrInputs);
+  const setDscrInputs = useStore((s) => s.setDscrInputs);
 
   const ebitda = scenario.company.annualRevenueMillions * (scenario.company.ebitdaMarginPercent / 100);
 
-  // Formulas (match Excel structure)
+  const {
+    totalDebt,
+    interestRate,
+    amortTermYears,
+    taxRate,
+    capex,
+    cashTaxes,
+    otherAdjustments,
+    covenantThreshold,
+  } = dscrInputs;
+
+  // Derived from inputs
+  const interestExpense = totalDebt * interestRate;
+  const principalRepayment = amortTermYears > 0 ? totalDebt / amortTermYears : 0;
+  const debtService = interestExpense + principalRepayment;
+
+  // CFADS and DSCR
   const cashFlowAvailable = ebitda - cashTaxes - capex + otherAdjustments;
-  const dscrPreEvent = cashFlowAvailable / (interestExpense + principalRepayment);
+  const dscrPreEvent = debtService > 0 ? cashFlowAvailable / debtService : 0;
+
+  // Derive dynamic loss profile for Net P90 (post-event DSCR)
+  const dynamicLossProfile = useMemo(() => {
+    const base = scenario.lossProfile;
+    return { netP90: base.netP90Millions };
+  }, [scenario.lossProfile]);
 
   // Post-event DSCR (EBITDA reduced by Net P90)
   const ebitdaPostEvent = Math.max(0, ebitda - dynamicLossProfile.netP90);
   const cashFlowAvailablePostEvent = ebitdaPostEvent - cashTaxes - capex + otherAdjustments;
-  const dscrPostEvent = cashFlowAvailablePostEvent / (interestExpense + principalRepayment);
+  const dscrPostEvent = debtService > 0 ? cashFlowAvailablePostEvent / debtService : 0;
 
   const covenantBreach = dscrPostEvent < covenantThreshold;
 
@@ -94,54 +100,79 @@ export function DscrModule({ isExpanded, onToggle }: DscrModuleProps) {
         </button>
       </div>
 
-      {/* Inputs */}
+      {/* Inputs: credit-shaped */}
       <div className="grid grid-cols-2 gap-3 text-[10px]">
         <div>
           <label className="text-war-muted mb-1 block">EBITDA</label>
           <div className="text-sm font-semibold text-war-white">${ebitda.toFixed(1)}M</div>
         </div>
         <div>
-          <label className="text-war-muted mb-1 block">Cash Taxes</label>
+          <label className="text-war-muted mb-1 block">Total Debt ($M)</label>
           <input
             type="number"
+            step="0.1"
+            value={totalDebt.toFixed(1)}
+            onChange={(e) => setDscrInputs({ totalDebt: parseFloat(e.target.value) || 0 })}
+            className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
+          />
+        </div>
+        <div>
+          <label className="text-war-muted mb-1 block">Interest Rate</label>
+          <input
+            type="number"
+            step="0.01"
+            value={interestRate}
+            onChange={(e) => setDscrInputs({ interestRate: parseFloat(e.target.value) || 0 })}
+            className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
+          />
+        </div>
+        <div>
+          <label className="text-war-muted mb-1 block">Amort Term (years)</label>
+          <input
+            type="number"
+            min="1"
+            value={amortTermYears}
+            onChange={(e) => setDscrInputs({ amortTermYears: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+            className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
+          />
+        </div>
+        <div>
+          <label className="text-war-muted mb-1 block">Tax Rate</label>
+          <input
+            type="number"
+            step="0.01"
+            value={taxRate}
+            onChange={(e) => setDscrInputs({ taxRate: parseFloat(e.target.value) || 0 })}
+            className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
+          />
+        </div>
+        <div>
+          <label className="text-war-muted mb-1 block">Cash Taxes ($M)</label>
+          <input
+            type="number"
+            step="0.1"
             value={cashTaxes.toFixed(1)}
-            onChange={(e) => setCashTaxes(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setDscrInputs({ cashTaxes: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
         <div>
-          <label className="text-war-muted mb-1 block">Capex</label>
+          <label className="text-war-muted mb-1 block">Capex ($M)</label>
           <input
             type="number"
+            step="0.1"
             value={capex.toFixed(1)}
-            onChange={(e) => setCapex(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setDscrInputs({ capex: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
         <div>
-          <label className="text-war-muted mb-1 block">Other Adjustments</label>
+          <label className="text-war-muted mb-1 block">Other Adjustments ($M)</label>
           <input
             type="number"
+            step="0.1"
             value={otherAdjustments.toFixed(1)}
-            onChange={(e) => setOtherAdjustments(parseFloat(e.target.value) || 0)}
-            className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
-          />
-        </div>
-        <div>
-          <label className="text-war-muted mb-1 block">Interest Expense</label>
-          <input
-            type="number"
-            value={interestExpense.toFixed(1)}
-            onChange={(e) => setInterestExpense(parseFloat(e.target.value) || 0)}
-            className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
-          />
-        </div>
-        <div>
-          <label className="text-war-muted mb-1 block">Principal Repayment</label>
-          <input
-            type="number"
-            value={principalRepayment.toFixed(1)}
-            onChange={(e) => setPrincipalRepayment(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setDscrInputs({ otherAdjustments: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -150,7 +181,14 @@ export function DscrModule({ isExpanded, onToggle }: DscrModuleProps) {
       {/* Calculations */}
       <div className="pt-3 border-t border-war-border/30 space-y-2">
         <div className="flex justify-between items-center text-sm">
-          <span className="text-war-muted">Cash Flow Available for Debt Service</span>
+          <span className="text-war-muted">Interest + Principal (debt service)</span>
+          <span className="text-war-white font-semibold">${debtService.toFixed(1)}M</span>
+        </div>
+        <div className="text-[10px] text-war-muted italic">
+          = Total Debt × Interest Rate + Total Debt ÷ Amort Term
+        </div>
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-war-muted">CFADS</span>
           <span className="text-war-white font-semibold">${cashFlowAvailable.toFixed(1)}M</span>
         </div>
         <div className="text-[10px] text-war-muted italic">
@@ -193,7 +231,7 @@ export function DscrModule({ isExpanded, onToggle }: DscrModuleProps) {
             type="number"
             step="0.1"
             value={covenantThreshold}
-            onChange={(e) => setCovenantThreshold(parseFloat(e.target.value) || 1.2)}
+            onChange={(e) => setDscrInputs({ covenantThreshold: parseFloat(e.target.value) || 1.2 })}
             className="w-20 px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white text-right"
           />
         </div>

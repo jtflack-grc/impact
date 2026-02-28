@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { EduTooltip } from "../EduTooltip";
 import { useStore } from "../../store";
 
@@ -10,15 +10,19 @@ interface WaccModuleProps {
 const BASELINE_WACC = 0.092; // 9.2%
 
 export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
-  // Inputs (editable in Deep Mode)
-  const [riskFreeRate, setRiskFreeRate] = useState(0.035); // 3.5%
-  const [equityRiskPremium, setEquityRiskPremium] = useState(0.06); // 6%
-  const [unleveredBeta, setUnleveredBeta] = useState(1.0);
-  const [costOfDebt, setCostOfDebt] = useState(0.05); // 5%
-  const [taxRate, setTaxRate] = useState(0.25); // 25%
-  const [debtWeight, setDebtWeight] = useState(0.30); // 30%
-  const [equityWeight, setEquityWeight] = useState(0.70); // 70%
+  const waccInputs = useStore((s) => s.deepFinance.waccInputs);
+  const setWaccInputs = useStore((s) => s.setWaccInputs);
   const setDeepFinanceWacc = useStore((s) => s.setDeepFinanceWacc);
+
+  const {
+    riskFreeRate,
+    equityRiskPremium,
+    unleveredBeta,
+    costOfDebt,
+    taxRate,
+    debtWeight,
+    equityWeight,
+  } = waccInputs;
 
   // Formula chain (exact structure from Excel)
   const debtToEquity = debtWeight / equityWeight;
@@ -92,7 +96,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.001"
             value={riskFreeRate}
-            onChange={(e) => setRiskFreeRate(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ riskFreeRate: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -102,7 +106,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.001"
             value={equityRiskPremium}
-            onChange={(e) => setEquityRiskPremium(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ equityRiskPremium: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -112,7 +116,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.1"
             value={unleveredBeta}
-            onChange={(e) => setUnleveredBeta(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ unleveredBeta: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -122,7 +126,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.001"
             value={costOfDebt}
-            onChange={(e) => setCostOfDebt(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ costOfDebt: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -132,7 +136,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.01"
             value={taxRate}
-            onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ taxRate: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -142,7 +146,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.01"
             value={debtWeight}
-            onChange={(e) => setDebtWeight(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ debtWeight: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
@@ -152,7 +156,7 @@ export function WaccModule({ isExpanded, onToggle }: WaccModuleProps) {
             type="number"
             step="0.01"
             value={equityWeight}
-            onChange={(e) => setEquityWeight(parseFloat(e.target.value) || 0)}
+            onChange={(e) => setWaccInputs({ equityWeight: parseFloat(e.target.value) || 0 })}
             className="w-full px-2 py-1 bg-black/60 border border-war-border/50 rounded text-sm text-war-white"
           />
         </div>
