@@ -14,8 +14,10 @@ interface ImpactInteractionState {
   clearLinkedFocus: () => void;
 }
 
-export const useImpactInteractionStore = create<ImpactInteractionState>((set) => ({
-  linkedFocus: null,
-  setLinkedFocus: (linkedFocus) => set({ linkedFocus }),
-  clearLinkedFocus: () => set({ linkedFocus: null }),
-}));
+export const useImpactInteractionStore = create<ImpactInteractionState>(
+  (set) => ({
+    linkedFocus: null,
+    setLinkedFocus: (linkedFocus) => set({ linkedFocus }),
+    clearLinkedFocus: () => set({ linkedFocus: null }),
+  })
+);
