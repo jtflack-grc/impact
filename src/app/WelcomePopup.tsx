@@ -19,94 +19,69 @@ export function WelcomePopup() {
 
   return (
     <div
-      className="fixed inset-0 z-[9998] flex items-center justify-center p-4 bg-black/80"
+      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-title"
       onClick={handleClose}
     >
       <div
-        className="relative max-w-2xl w-full rounded-2xl border-2 border-slate-500 bg-slate-800 shadow-2xl overflow-hidden"
+        className="relative w-full max-w-xl overflow-hidden border border-war-border bg-war-surface"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
           onClick={handleClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10"
+          className="absolute right-4 top-4 z-10 p-1 text-war-muted transition-colors hover:text-war-white"
           aria-label="Close"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.7} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        <div className="p-8 space-y-6">
-          <div className="text-center space-y-2">
-            <h1 id="welcome-title" className="text-3xl font-bold tracking-[0.1em] text-white">
-              IMPACT!
+        <div className="space-y-6 p-6 sm:p-8">
+          <div className="max-w-lg space-y-2 pr-8">
+            <p className="text-xs font-medium text-war-muted">FAIR × FMVA simulation</p>
+            <h1 id="welcome-title" className="text-2xl font-semibold leading-tight text-war-white sm:text-3xl">
+              Cyber risk, translated into financial consequence.
             </h1>
-            <p className="text-sm text-slate-400 tracking-wide">
-              A FAIR and FMVA Financial Simulator
+            <p className="text-sm leading-relaxed text-war-muted">
+              Work through 15 fictional security scenarios. Your decisions change quantitative risk exposure and the financial case for controls.
             </p>
           </div>
 
-          <div className="space-y-4 text-sm text-slate-200 leading-relaxed">
-            <p>
-              <strong className="text-white">IMPACT!</strong> is a showpiece for both sides of the risk coin—{" "}
-              <strong className="text-emerald-400">FAIR</strong> (Factor Analysis of Information Risk) and{" "}
-              <strong className="text-emerald-400">FMVA</strong> (Financial Modeling & Valuation Analyst)—with
-              scenario-based play as the glue between them. This tool is for learning how FAIR and FMVA concepts
-              work together so you can understand IT security risk in financial terms.
-            </p>
-            <p className="text-slate-300 text-xs">
-              You&apos;ll see FAIR terms (P90, LEF, loss magnitude) and FMVA terms (NPV, IRR, revenue at risk). Tap
-              the (i) icons throughout the app to learn as you go.
-            </p>
-
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold text-white uppercase tracking-wide">
-                How It Works
-              </h3>
-              <ul className="space-y-2 list-disc list-inside text-slate-300">
-                <li>
-                  <strong className="text-white">15 Security Scenarios:</strong> Each scenario presents a real-world
-                  IT security incident, control failure, or architectural blind spot affecting a fictional company.
-                </li>
-                <li>
-                  <strong className="text-white">Interactive Decision Making:</strong> You&apos;ll make choices that
-                  affect risk exposure and financial outcomes (FAIR and FMVA metrics). Watch how your decisions impact
-                  the center dashboard in real-time.
-                </li>
-                <li>
-                  <strong className="text-white">FAIR Analysis:</strong> Understand loss event frequency, loss
-                  magnitude, Monte Carlo simulations, and control impact modeling.
-                </li>
-                <li>
-                  <strong className="text-white">FMVA Modeling:</strong> Explore 3-statement financial models, DCF
-                  valuations, capital budgeting (NPV, IRR), and scenario analysis.
-                </li>
-                <li>
-                  <strong className="text-white">Geographic Context:</strong> Each scenario is tied to a specific
-                  country. Click on highlighted countries on the globe to see company details and financials.
-                </li>
-              </ul>
+          <dl className="divide-y divide-war-border border-y border-war-border">
+            <div className="grid gap-1 py-3 sm:grid-cols-[108px_1fr] sm:gap-4">
+              <dt className="text-xs font-semibold text-war-white">Decide</dt>
+              <dd className="text-sm leading-relaxed text-war-muted">
+                Respond to incidents, control failures, and architecture tradeoffs in the left rail.
+              </dd>
             </div>
-
-            <div className="pt-4 border-t border-slate-600">
-              <p className="text-xs text-slate-400">
-                This simulation is designed for educational purposes to demonstrate FAIR and FMVA concepts. All
-                companies, scenarios, and financial data are fictional.
-              </p>
+            <div className="grid gap-1 py-3 sm:grid-cols-[108px_1fr] sm:gap-4">
+              <dt className="text-xs font-semibold text-war-white">Measure</dt>
+              <dd className="text-sm leading-relaxed text-war-muted">
+                Track FAIR outputs such as P90, LEF, loss magnitude, and expected annual loss in the center rail.
+              </dd>
             </div>
-          </div>
+            <div className="grid gap-1 py-3 sm:grid-cols-[108px_1fr] sm:gap-4">
+              <dt className="text-xs font-semibold text-war-white">Translate</dt>
+              <dd className="text-sm leading-relaxed text-war-muted">
+                Put the risk into FMVA-style terms including NPV, IRR, revenue at risk, DCF, and capital budgeting.
+              </dd>
+            </div>
+          </dl>
 
-          <div className="pt-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <p className="max-w-sm text-xs leading-relaxed text-war-muted">
+              Educational simulation only. Companies, scenarios, and financial data are fictional. Use the information icons for definitions as you work.
+            </p>
             <button
               type="button"
               onClick={handleClose}
-              className="w-full inline-flex items-center justify-center rounded-lg bg-emerald-500 text-white text-sm font-semibold px-6 py-3 hover:bg-emerald-600 transition-colors"
+              className="inline-flex min-h-[42px] shrink-0 items-center justify-center rounded bg-war-white px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-white/90"
             >
-              Get Started
+              Start simulation
             </button>
           </div>
         </div>
