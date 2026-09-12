@@ -1,0 +1,15 @@
+name: Scan legacy BreachGuard framing
+
+on:
+  push:
+    branches:
+      - refactor/retire-breachguard
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find legacy assistant framing
+        run: |
+          grep -RniE 'BreachGuard|LLM|IT Security Assistant|Assistant header|LLM Message|assistant' src README.md DESIGN.md index.html || true
