@@ -1,0 +1,85 @@
+name: Patch guided voice
+
+on:
+  push:
+    branches:
+      - fix/guided-natural-voice
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[voice-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/guided-natural-voice
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Add quality-aware voice selection
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('src/app/GuidedScenarioMode.tsx')
+          text = p.read_text()
+
+          old = '''function choosePreferredVoice(\n  voices: SpeechSynthesisVoice[]\n): SpeechSynthesisVoice | null {\n  if (voices.length === 0) return null;\n  const preferred = [\n    "natural",\n    "neural",\n    "aria",\n    "jenny",\n    "ava",\n    "guy",\n    "google us english",\n    "samantha",\n  ];\n  const english = voices.filter((voice) =>\n    voice.lang.toLowerCase().startsWith("en")\n  );\n  for (const needle of preferred) {\n    const match = english.find((voice) =>\n      voice.name.toLowerCase().includes(needle)\n    );\n    if (match) return match;\n  }\n  return english[0] ?? voices[0] ?? null;\n}\n'''
+          new = '''const VOICE_STORAGE_KEY = "impact-guided-voice-uri";\n\nfunction voiceQualityScore(voice: SpeechSynthesisVoice): number {\n  const name = voice.name.toLowerCase();\n  let score = 0;\n  if (!voice.localService) score += 120;\n  if (/natural|neural|online|premium/.test(name)) score += 100;\n  if (/aria|jenny|ava|guy|sonia|ryan|libby/.test(name)) score += 45;\n  if (/google us english|samantha/.test(name)) score += 35;\n  if (/zira|hazel/.test(name)) score += 18;\n  if (voice.lang.toLowerCase() === "en-us") score += 12;\n  if (/david|mark/.test(name)) score -= 8;\n  return score;\n}\n\nfunction isHighQualityVoice(voice: SpeechSynthesisVoice): boolean {\n  const name = voice.name.toLowerCase();\n  return !voice.localService || /natural|neural|online|premium/.test(name);\n}\n\nfunction choosePreferredVoice(\n  voices: SpeechSynthesisVoice[]\n): SpeechSynthesisVoice | null {\n  const english = voices.filter((voice) =>\n    voice.lang.toLowerCase().startsWith("en")\n  );\n  const candidates = english.length > 0 ? english : voices;\n  return [...candidates].sort(\n    (a, b) => voiceQualityScore(b) - voiceQualityScore(a)\n  )[0] ?? null;\n}\n\nfunction configureUtterance(\n  utterance: SpeechSynthesisUtterance,\n  voice: SpeechSynthesisVoice | null\n) {\n  if (voice) {\n    utterance.voice = voice;\n    utterance.lang = voice.lang;\n  } else {\n    utterance.lang = "en-US";\n  }\n  const highQuality = voice ? isHighQualityVoice(voice) : false;\n  utterance.rate = highQuality ? 0.97 : 0.88;\n  utterance.pitch = highQuality ? 1 : 1.03;\n  utterance.volume = 0.94;\n}\n'''
+          if old not in text:
+              raise SystemExit('preferred voice helper anchor not found')
+          text = text.replace(old, new, 1)
+
+          state_anchor = '''  const [playing, setPlaying] = useState(true);\n  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);\n'''
+          state_new = '''  const [playing, setPlaying] = useState(true);\n  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);\n  const [selectedVoiceURI, setSelectedVoiceURI] = useState(() =>\n    typeof window === "undefined"\n      ? ""\n      : window.localStorage.getItem(VOICE_STORAGE_KEY) ?? ""\n  );\n'''
+          if state_anchor not in text:
+              raise SystemExit('state anchor not found')
+          text = text.replace(state_anchor, state_new, 1)
+
+          preferred_anchor = '''  const safeStep = Math.min(guidedStep, steps.length - 1);\n  const current = steps[safeStep];\n  const preferredVoice = useMemo(() => choosePreferredVoice(voices), [voices]);\n'''
+          preferred_new = '''  const safeStep = Math.min(guidedStep, steps.length - 1);\n  const current = steps[safeStep];\n  const englishVoices = useMemo(\n    () =>\n      voices\n        .filter((voice) => voice.lang.toLowerCase().startsWith("en"))\n        .sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a)),\n    [voices]\n  );\n  const preferredVoice = useMemo(\n    () => choosePreferredVoice(englishVoices),\n    [englishVoices]\n  );\n  const selectedVoice = useMemo(\n    () =>\n      englishVoices.find((voice) => voice.voiceURI === selectedVoiceURI) ??\n      preferredVoice,\n    [englishVoices, preferredVoice, selectedVoiceURI]\n  );\n  const naturalVoiceAvailable = englishVoices.some(isHighQualityVoice);\n  const isFirefox =\n    typeof navigator !== "undefined" && navigator.userAgent.includes("Firefox/");\n'''
+          if preferred_anchor not in text:
+              raise SystemExit('preferred voice state anchor not found')
+          text = text.replace(preferred_anchor, preferred_new, 1)
+
+          speech_old = '''    const utterance = new SpeechSynthesisUtterance(\n      `${current.title}. ${current.text}`\n    );\n    if (preferredVoice) utterance.voice = preferredVoice;\n    utterance.rate = 0.93;\n    utterance.pitch = 0.98;\n    utterance.volume = 0.92;\n    synth.speak(utterance);\n    return () => synth.cancel();\n  }, [current, guidedActive, guidedVoice, preferredVoice]);\n'''
+          speech_new = '''    const utterance = new SpeechSynthesisUtterance(\n      `${current.title}. ${current.text}`\n    );\n    configureUtterance(utterance, selectedVoice);\n    synth.speak(utterance);\n    return () => synth.cancel();\n  }, [current, guidedActive, guidedVoice, selectedVoice]);\n'''
+          if speech_old not in text:
+              raise SystemExit('speech effect anchor not found')
+          text = text.replace(speech_old, speech_new, 1)
+
+          exit_anchor = '''  const exit = () => {\n    if ("speechSynthesis" in window) window.speechSynthesis.cancel();\n    clearLinkedFocus();\n    stopGuided();\n  };\n'''
+          exit_new = '''  const updateSelectedVoice = (voiceURI: string) => {\n    setSelectedVoiceURI(voiceURI);\n    if (voiceURI) window.localStorage.setItem(VOICE_STORAGE_KEY, voiceURI);\n    else window.localStorage.removeItem(VOICE_STORAGE_KEY);\n  };\n\n  const previewVoice = () => {\n    if (!("speechSynthesis" in window)) return;\n    const synth = window.speechSynthesis;\n    synth.cancel();\n    const utterance = new SpeechSynthesisUtterance(\n      "Impact guided briefing. Quantified cyber risk, translated into business consequence."\n    );\n    configureUtterance(utterance, selectedVoice);\n    synth.speak(utterance);\n  };\n\n  const exit = () => {\n    if ("speechSynthesis" in window) window.speechSynthesis.cancel();\n    clearLinkedFocus();\n    stopGuided();\n  };\n'''
+          if exit_anchor not in text:
+              raise SystemExit('exit anchor not found')
+          text = text.replace(exit_anchor, exit_new, 1)
+
+          title_old = '''            title={preferredVoice?.name ?? "System speech voice"}\n'''
+          title_new = '''            title={selectedVoice?.name ?? "System speech voice"}\n'''
+          if title_old not in text:
+              raise SystemExit('voice title anchor not found')
+          text = text.replace(title_old, title_new, 1)
+
+          info_old = '''        {guidedVoice && (\n          <div className="mt-2 font-mono text-[9px] text-slate-500">\n            Voice: {preferredVoice?.name ?? "system default"}\n          </div>\n        )}\n'''
+          info_new = '''        {guidedVoice && (\n          <div className="mt-3 border-t border-war-border/70 pt-3">\n            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">\n              <select\n                value={selectedVoiceURI}\n                onChange={(event) => updateSelectedVoice(event.target.value)}\n                className="min-w-0 flex-1 border border-war-border bg-black/70 px-2 py-1.5 text-[10px] text-slate-300"\n                aria-label="Guided narration voice"\n              >\n                <option value="">\n                  Auto · {preferredVoice?.name ?? "system default"}\n                </option>\n                {englishVoices.map((voice) => (\n                  <option key={voice.voiceURI} value={voice.voiceURI}>\n                    {voice.name} · {voice.localService ? "local" : "online"}\n                  </option>\n                ))}\n              </select>\n              <button\n                type="button"\n                onClick={previewVoice}\n                className="border border-war-border px-2.5 py-1.5 text-[10px] text-war-muted hover:text-war-white"\n              >\n                Preview\n              </button>\n            </div>\n            <div className="mt-2 font-mono text-[9px] text-slate-500">\n              Selected: {selectedVoice?.name ?? "system default"}\n              {selectedVoice\n                ? ` · ${isHighQualityVoice(selectedVoice) ? "natural/online candidate" : "local system voice"}`\n                : ""}\n            </div>\n            {!naturalVoiceAvailable && (\n              <div className="mt-2 border-l-2 border-amber-500/60 pl-2 text-[10px] leading-relaxed text-amber-200/80">\n                {isFirefox\n                  ? "Firefox is only exposing local system voices here. Pick the best installed option above, or open Impact in Edge for a better chance of an online natural voice."\n                  : "This browser is only exposing local system voices. Pick the best installed option above; a browser with online speech voices may sound substantially more natural."}\n              </div>\n            )}\n          </div>\n        )}\n'''
+          if info_old not in text:
+              raise SystemExit('voice info anchor not found')
+          text = text.replace(info_old, info_new, 1)
+
+          p.write_text(text)
+          PY
+      - run: npm ci
+      - run: npx prettier --write src/app/GuidedScenarioMode.tsx
+      - run: npx eslint src/app/GuidedScenarioMode.tsx --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+      - run: npm test -- --run
+      - run: npm run build
+      - name: Commit voice picker
+        run: |
+          git config user.name "jtflack-grc"
+          git config user.email "202126308+jtflack-grc@users.noreply.github.com"
+          git add src/app/GuidedScenarioMode.tsx
+          git commit -m "Improve guided narration voice selection [voice-patched]"
+          git push origin fix/guided-natural-voice
