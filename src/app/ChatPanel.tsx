@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ScenarioMetricKey } from "../content/schema";
 import { useScenarioStore } from "../store/scenarioStore";
 import { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";
+import { WhyDidThisChange } from "./WhyDidThisChange";
 
 const METRIC_LABELS: Record<ScenarioMetricKey, string> = {
   controlAdoption: "Control adoption",
@@ -389,6 +390,7 @@ export function ChatPanel() {
                       FAIR: {fairTakeaway(lastChoiceImpact.metricDeltas)}
                     </p>
                   )}
+                  <WhyDidThisChange />
                   {atLastStep && hasNextScenario ? (
                     <button
                       type="button"

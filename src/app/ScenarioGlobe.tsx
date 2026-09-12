@@ -49,11 +49,13 @@ export function ScenarioGlobe() {
   const showResults = useScenarioStore((s) => s.showResults);
   const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
   const tailSelection = useImpactInteractionStore((s) => s.tailSelection);
+  const cameraReplayToken = useImpactInteractionStore((s) => s.cameraReplayToken);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<any>(null);
   const countrySourceRef = useRef<any>(null);
   const clickHandlerRef = useRef<any>(null);
   const lastCameraScenarioRef = useRef<string | null>(null);
+  const lastCameraReplayTokenRef = useRef(0);
   const popupTimerRef = useRef<number | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [ready, setReady] = useState(false);
@@ -189,7 +191,8 @@ export function ScenarioGlobe() {
     if (!Cesium || !viewer || viewer.isDestroyed()) return;
 
     const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;
-    if (scenarioChanged) {
+    const replayRequested = lastCameraReplayTokenRef.current !== cameraReplayToken;
+    if (scenarioChanged || replayRequested) {
       if (popupTimerRef.current !== null) {
         window.clearTimeout(popupTimerRef.current);
         popupTimerRef.current = null;
@@ -324,8 +327,9 @@ export function ScenarioGlobe() {
       }
     }
 
-    if (scenarioChanged) {
+    if (scenarioChanged || replayRequested) {
       lastCameraScenarioRef.current = scenario.id;
+      lastCameraReplayTokenRef.current = cameraReplayToken;
       const arrivalHeading = scenario.index % 2 === 0 ? 9 : -9;
       viewer.camera.flyTo({
         destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 9_100_000),
@@ -361,6 +365,7 @@ export function ScenarioGlobe() {
   }, [
     ready,
     activeTailSelection,
+    cameraReplayToken,
     linkedFocus,
     lastChoiceImpact,
     showResults,
