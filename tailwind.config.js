@@ -5,18 +5,18 @@ export default {
     extend: {
       colors: {
         war: {
-          bg: "#000000",
-          surface: "#000000",
-          border: "#0d0d0d",
-          muted: "#737373",
-          accent: "#ffffff",
-          "accent-dim": "#525252",
-          white: "#ffffff",
+          bg: "#07090b",
+          surface: "#0d1115",
+          border: "#20262d",
+          muted: "#8b949e",
+          accent: "#f2f5f7",
+          "accent-dim": "#5e6873",
+          white: "#f6f7f8",
         },
       },
       fontFamily: {
-        sans: ["-apple-system", "BlinkMacSystemFont", "SF Pro Text", "Segoe UI", "system-ui", "sans-serif"],
-        mono: ["SF Mono", "ui-monospace", "monospace"],
+        sans: ["IBM Plex Sans", "Segoe UI", "system-ui", "sans-serif"],
+        mono: ["IBM Plex Mono", "SFMono-Regular", "Consolas", "ui-monospace", "monospace"],
       },
       fontWeight: {
         normal: "400",
