@@ -1,0 +1,24 @@
+name: Verify full-width board view
+
+on:
+  push:
+    branches:
+      - feat/board-fullwidth
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --check src/app/BoardMode.tsx
+      - run: npx eslint src/app/BoardMode.tsx --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+      - run: npm test -- --run
+      - run: npm run build
