@@ -2,6 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Globe from "react-globe.gl";
 import { Canvas } from "@react-three/fiber";
 import { Stars } from "@react-three/drei";
+import {
+  Color,
+  MeshPhongMaterial,
+  NoColorSpace,
+  SRGBColorSpace,
+  TextureLoader,
+} from "three";
 import { useScenarioStore } from "../store/scenarioStore";
 
 interface CountryFeature {
@@ -15,6 +22,13 @@ interface CountryFeature {
 
 const WORLD_GEOJSON_URL =
   "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
+
+const EARTH_IMAGE_URL =
+  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg";
+const EARTH_TOPOLOGY_URL =
+  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png";
+const EARTH_WATER_URL =
+  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-water.png";
 
 const COUNTRY_ALIASES: Record<string, string[]> = {
   US: ["United States of America", "United States", "USA"],
@@ -34,6 +48,41 @@ export function ScenarioGlobe() {
   const [countries, setCountries] = useState<CountryFeature[]>([]);
   const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
   const [showPopup, setShowPopup] = useState(true);
+
+  const terrainMaterial = useMemo(() => {
+    const loader = new TextureLoader();
+    const earthTexture = loader.load(EARTH_IMAGE_URL);
+    earthTexture.colorSpace = SRGBColorSpace;
+
+    const elevationTexture = loader.load(EARTH_TOPOLOGY_URL);
+    elevationTexture.colorSpace = NoColorSpace;
+
+    const waterTexture = loader.load(EARTH_WATER_URL);
+    waterTexture.colorSpace = NoColorSpace;
+
+    return new MeshPhongMaterial({
+      map: earthTexture,
+      bumpMap: elevationTexture,
+      bumpScale: 1.15,
+      displacementMap: elevationTexture,
+      // Deliberately exaggerated so relief remains legible in the narrow game rail.
+      // The underlying elevation pattern is real topography; this is not a to-scale Earth model.
+      displacementScale: 1.35,
+      specularMap: waterTexture,
+      specular: new Color(0x3f6480),
+      shininess: 10,
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      terrainMaterial.map?.dispose();
+      terrainMaterial.bumpMap?.dispose();
+      terrainMaterial.displacementMap?.dispose();
+      terrainMaterial.specularMap?.dispose();
+      terrainMaterial.dispose();
+    };
+  }, [terrainMaterial]);
 
   const canonicalName = useMemo(
     () => scenario.countryName,
@@ -67,58 +116,74 @@ export function ScenarioGlobe() {
     };
   }, [countries.length]);
 
-  useEffect(() => {
-    const globe = globeRef.current as unknown as { pointOfView: (pos: { lat: number; lng: number; altitude: number }, ms?: number) => void } | null;
+  const focusScenario = () => {
+    const globe = globeRef.current as unknown as {
+      pointOfView: (
+        pos: { lat: number; lng: number; altitude: number },
+        ms?: number
+      ) => void;
+    } | null;
     if (!globe?.pointOfView) return;
     globe.pointOfView(
       {
         lat: scenario.latitude,
         lng: scenario.longitude,
-        altitude: 2.0,
+        altitude: 1.55,
       },
       1000
     );
+  };
+
+  useEffect(() => {
+    focusScenario();
   }, [scenario.latitude, scenario.longitude]);
 
   return (
     <div className="relative w-full h-full bg-black">
-      {/* Twinkling starfield background */}
+      {/* Twinkling starfield background. Kept intentionally lighter to leave GPU headroom for terrain. */}
       <div className="absolute inset-0 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 1], fov: 75 }}>
           <color attach="background" args={["#020617"]} />
           <Stars
             radius={300}
             depth={150}
-            count={8000}
-            factor={8}
+            count={3500}
+            factor={7}
             saturation={0}
             fade
-            speed={0.5}
+            speed={0.35}
           />
         </Canvas>
       </div>
 
-      {/* Globe overlay */}
+      {/* Terrain globe overlay */}
       <div className="relative z-10 w-full h-full">
         <Globe
           ref={globeRef as any}
           width={undefined}
           height={undefined}
           backgroundColor="rgba(2,6,23,0)"
-          globeImageUrl="https://unpkg.com/three-globe@2.24.10/example/img/earth-dark.jpg"
+          rendererConfig={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+          globeMaterial={terrainMaterial}
+          globeCurvatureResolution={0.75}
+          onGlobeReady={focusScenario}
           polygonsData={countries}
           polygonAltitude={(d: object) =>
-            isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName) ? 0.06 : 0.01
+            isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName) ? 0.032 : 0.019
           }
           polygonCapColor={(d: object) =>
             isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName)
-              ? "rgba(239,68,68,0.95)"
-              : "rgba(30,64,175,0.65)"
+              ? "rgba(239,68,68,0.50)"
+              : "rgba(15,23,42,0.035)"
           }
-          polygonSideColor={() => "rgba(15,23,42,0.9)"}
-          polygonStrokeColor={() => "rgba(15,23,42,0.9)"}
-          atmosphereColor="rgb(96,165,250)"
-          atmosphereAltitude={0.18}
+          polygonSideColor={() => "rgba(15,23,42,0.12)"}
+          polygonStrokeColor={(d: object) =>
+            isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName)
+              ? "rgba(248,113,113,0.95)"
+              : "rgba(203,213,225,0.22)"
+          }
+          atmosphereColor="rgb(125,211,252)"
+          atmosphereAltitude={0.13}
           showAtmosphere
           onPolygonClick={(d: object) => {
             if (isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName)) {
@@ -130,17 +195,17 @@ export function ScenarioGlobe() {
           pointLat="lat"
           pointLng="lng"
           pointLabel="label"
-          pointColor={() => "rgba(59,130,246,1)"}
-          pointAltitude={0.15}
-          pointRadius={0.5}
+          pointColor={() => "rgba(96,165,250,1)"}
+          pointAltitude={0.065}
+          pointRadius={0.42}
           pointResolution={16}
           ringsData={hqRing}
           ringLat="lat"
           ringLng="lng"
           ringMaxRadius="maxRadius"
           ringPropagationSpeed="propagationSpeed"
-          ringColor={() => "rgba(96,165,250,0.6)"}
-          ringAltitude={0.12}
+          ringColor={() => "rgba(125,211,252,0.7)"}
+          ringAltitude={0.055}
         />
       </div>
 
@@ -271,4 +336,3 @@ export function ScenarioGlobe() {
     </div>
   );
 }
-
