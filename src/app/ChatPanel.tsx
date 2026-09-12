@@ -81,6 +81,7 @@ export function ChatPanel() {
   const simulationComplete = useScenarioStore((s) => s.simulationComplete);
   const resetSimulation = useScenarioStore((s) => s.resetSimulation);
   const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
+  const tailSelection = useImpactInteractionStore((s) => s.tailSelection);
 
   const scenario = scenarios[currentScenarioIndex];
   const step = scenario.steps[currentStepIndex];
@@ -281,6 +282,19 @@ export function ChatPanel() {
             <div className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">Linked model focus</div>
             <div className="mt-1 text-xs font-semibold text-war-white">{LINKED_FOCUS_COPY[linkedFocus].label}</div>
             <p className="mt-1 text-[11px] leading-relaxed text-war-muted">{LINKED_FOCUS_COPY[linkedFocus].body}</p>
+          </div>
+        )}
+
+        {tailSelection?.scenarioId === scenario.id && (
+          <div className="border border-red-400/35 bg-red-950/10 px-4 py-3">
+            <div className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">Tail lens</div>
+            <div className="mt-1 flex items-baseline justify-between gap-3">
+              <div className="text-xs font-semibold text-war-white">{tailSelection.label}</div>
+              <div className="font-mono text-[10px] text-red-200">{(tailSelection.probabilityMass * 100).toFixed(1)}% mass</div>
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-war-muted">
+              Selected losses span ${tailSelection.lowMillions.toFixed(0)}M–${tailSelection.highMillions.toFixed(0)}M with a conditional mean of ${tailSelection.conditionalMeanMillions.toFixed(1)}M. That is about {tailSelection.ebitdaSharePercent.toFixed(0)}% of annual EBITDA.
+            </p>
           </div>
         )}
 
