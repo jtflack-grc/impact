@@ -1,4 +1,8 @@
-import type { SecurityScenario, ScenarioCompany, ScenarioLossProfile } from "./schema";
+import type {
+  SecurityScenario,
+  ScenarioCompany,
+  ScenarioLossProfile,
+} from "./schema";
 
 const DEFAULT_COMPANY: ScenarioCompany = {
   name: "Fictional Global Enterprises",
@@ -58,7 +62,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 60,
       meanLossMillions: 35,
       frequencyPerYear: 0.8,
-      topDriver: "Ransomware propagation via legacy Windows‑to‑IBM i file shares",
+      topDriver:
+        "Ransomware propagation via legacy Windows‑to‑IBM i file shares",
     },
     metrics: {
       controlAdoption: 72,
@@ -75,7 +80,7 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         title: "Shadow file shares into the core",
         messages: [
           "You're running IBM i 7.4, and you have several Windows shares mapped directly to the root of the Integrated File System (IFS).",
-          "As BreachGuard LLM, I need to highlight a critical inheritance problem here: these mappings bypass IBM i object-level security.",
+          "The critical inheritance problem is that these mappings bypass IBM i object-level security.",
           "When Windows users access \\\\ibmi-server\\ifs-root, they're hitting the IFS with the authority of the QSYS user profile that owns the SMB service—often QSYS or a service account with *ALLOBJ special authority.",
           "A ransomware crew has already landed in your Windows domain and is probing these mapped drives. They're looking for writable directories in the IFS that could let them drop encryption payloads or pivot into QSYS libraries.",
           "The IFS root mapping means they don't need to understand IBM i object authority—they just need write access to any folder in that share.",
@@ -87,20 +92,31 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "loss-driven",
             label: "Start with potential loss exposure",
-            summary: "Quantify plausible direct and indirect loss (FAIR P90, revenue at risk) before debating controls. Helps the board see financial impact.",
+            summary:
+              "Quantify plausible direct and indirect loss (FAIR P90, revenue at risk) before debating controls. Helps the board see financial impact.",
             metricDeltas: { successIndex: 5, welfareDebt: -2 },
           },
           {
             id: "control-driven",
             label: "Start with missing controls",
-            summary: "Jump straight into encryption, segmentation, and logging gaps. Raises control adoption and reduces governance debt.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, debtIndex: -2 },
+            summary:
+              "Jump straight into encryption, segmentation, and logging gaps. Raises control adoption and reduces governance debt.",
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              debtIndex: -2,
+            },
           },
           {
             id: "recovery-first",
             label: "Prioritize recovery and backup validation",
-            summary: "Focus on IFS recovery testing and RTO validation. Reduces incident impact and improves reversibility.",
-            metricDeltas: { systemReversibility: 6, successIndex: 3, incidentRate: -2 },
+            summary:
+              "Focus on IFS recovery testing and RTO validation. Reduces incident impact and improves reversibility.",
+            metricDeltas: {
+              systemReversibility: 6,
+              successIndex: 3,
+              incidentRate: -2,
+            },
           },
         ],
       },
@@ -118,20 +134,39 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "aggressive-contain",
             label: "Aggressive containment: cut SMB access to IFS now",
-            summary: "Immediately disconnect Windows–IFS mappings. Reduces incident spread and governance debt; may cause operational disruption.",
-            metricDeltas: { incidentRate: -5, welfareDebt: -4, successIndex: 6, controlAdoption: 2 },
+            summary:
+              "Immediately disconnect Windows–IFS mappings. Reduces incident spread and governance debt; may cause operational disruption.",
+            metricDeltas: {
+              incidentRate: -5,
+              welfareDebt: -4,
+              successIndex: 6,
+              controlAdoption: 2,
+            },
           },
           {
             id: "observe-longer",
             label: "Observe longer to reduce false positives",
-            summary: "Gather more telemetry before acting. Risks spread; increases incident rate and debt.",
-            metricDeltas: { incidentRate: 4, welfareDebt: 5, successIndex: -6, debtIndex: 3 },
+            summary:
+              "Gather more telemetry before acting. Risks spread; increases incident rate and debt.",
+            metricDeltas: {
+              incidentRate: 4,
+              welfareDebt: 5,
+              successIndex: -6,
+              debtIndex: 3,
+            },
           },
           {
             id: "isolate-inventory",
             label: "Isolate only the affected inventory share and add alerting",
-            summary: "Narrow containment plus real-time IFS monitoring. Balanced impact on risk and operations.",
-            metricDeltas: { incidentRate: -2, welfareDebt: -2, successIndex: 4, controlAdoption: 5, systemReversibility: 2 },
+            summary:
+              "Narrow containment plus real-time IFS monitoring. Balanced impact on risk and operations.",
+            metricDeltas: {
+              incidentRate: -2,
+              welfareDebt: -2,
+              successIndex: 4,
+              controlAdoption: 5,
+              systemReversibility: 2,
+            },
           },
         ],
       },
@@ -146,20 +181,33 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "least-privilege-ifs",
-            label: "Redesign IFS access with least privilege and remove root mapping",
-            summary: "Eliminate broad SMB-to-IFS mapping; use dedicated shares per application. Strong improvement in control adoption and reversibility.",
-            metricDeltas: { controlAdoption: 8, welfareDebt: -6, systemReversibility: 5, successIndex: 6 },
+            label:
+              "Redesign IFS access with least privilege and remove root mapping",
+            summary:
+              "Eliminate broad SMB-to-IFS mapping; use dedicated shares per application. Strong improvement in control adoption and reversibility.",
+            metricDeltas: {
+              controlAdoption: 8,
+              welfareDebt: -6,
+              systemReversibility: 5,
+              successIndex: 6,
+            },
           },
           {
             id: "recovery-drills",
             label: "Mandate quarterly IFS recovery drills and update RTOs",
-            summary: "Validate backup and restore; document RTO. Improves reversibility and success index.",
-            metricDeltas: { systemReversibility: 7, successIndex: 5, incidentRate: -2 },
+            summary:
+              "Validate backup and restore; document RTO. Improves reversibility and success index.",
+            metricDeltas: {
+              systemReversibility: 7,
+              successIndex: 5,
+              incidentRate: -2,
+            },
           },
           {
             id: "monitor-only",
             label: "Enhance monitoring and accept residual risk for now",
-            summary: "Add alerting and defer structural change. Small control gain; debt and incident rate stay elevated.",
+            summary:
+              "Add alerting and defer structural change. Small control gain; debt and incident rate stay elevated.",
             metricDeltas: { controlAdoption: 3, welfareDebt: 2, debtIndex: 2 },
           },
         ],
@@ -244,20 +292,28 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "surface-blast-radius",
             label: "Map blast radius and dependent systems",
-            summary: "Identify all systems that depend on the compromised credentials. Reduces governance debt and improves success index.",
+            summary:
+              "Identify all systems that depend on the compromised credentials. Reduces governance debt and improves success index.",
             metricDeltas: { successIndex: 6, welfareDebt: -4, debtIndex: -2 },
           },
           {
             id: "public-messaging",
             label: "Draft external comms and disclosures",
-            summary: "Prepare regulatory and customer communications. Helps contain reputational impact and incident rate.",
+            summary:
+              "Prepare regulatory and customer communications. Helps contain reputational impact and incident rate.",
             metricDeltas: { incidentRate: -3, successIndex: 3 },
           },
           {
             id: "rotate-and-restrict",
             label: "Rotate credentials and restrict API scope immediately",
-            summary: "Revoke exposed credentials and narrow scope to minimum required. Strong control adoption and debt reduction.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, incidentRate: -2, successIndex: 4 },
+            summary:
+              "Revoke exposed credentials and narrow scope to minimum required. Strong control adoption and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              incidentRate: -2,
+              successIndex: 4,
+            },
           },
         ],
       },
@@ -272,20 +328,34 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "require-scope-reduction",
-            label: "Require vendor to implement least-privilege API scope before re-enabling",
-            summary: "No integration until scope is reduced. Improves control adoption and long-term reversibility.",
-            metricDeltas: { controlAdoption: 7, systemReversibility: 4, welfareDebt: -4, successIndex: 5 },
+            label:
+              "Require vendor to implement least-privilege API scope before re-enabling",
+            summary:
+              "No integration until scope is reduced. Improves control adoption and long-term reversibility.",
+            metricDeltas: {
+              controlAdoption: 7,
+              systemReversibility: 4,
+              welfareDebt: -4,
+              successIndex: 5,
+            },
           },
           {
             id: "re-enable-with-monitoring",
-            label: "Re-enable with enhanced monitoring and quarterly access reviews",
-            summary: "Resume integration with new creds and add monitoring. Moderate improvement; some debt remains.",
-            metricDeltas: { controlAdoption: 4, incidentRate: -2, welfareDebt: -2 },
+            label:
+              "Re-enable with enhanced monitoring and quarterly access reviews",
+            summary:
+              "Resume integration with new creds and add monitoring. Moderate improvement; some debt remains.",
+            metricDeltas: {
+              controlAdoption: 4,
+              incidentRate: -2,
+              welfareDebt: -2,
+            },
           },
           {
             id: "accept-residual",
             label: "Accept residual risk and document for insurance and audit",
-            summary: "Document decision and residual risk. Small control gain; debt and incident rate stay higher.",
+            summary:
+              "Document decision and residual risk. Small control gain; debt and incident rate stay higher.",
             metricDeltas: { successIndex: 2, welfareDebt: 2, debtIndex: 2 },
           },
         ],
@@ -300,20 +370,33 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "vendor-risk-program",
-            label: "Stand up a formal vendor risk program with FAIR-style loss exposure",
-            summary: "Define vendor tiers, required controls, and loss exposure by vendor. Strong governance and success index.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -6, successIndex: 6, debtIndex: -3 },
+            label:
+              "Stand up a formal vendor risk program with FAIR-style loss exposure",
+            summary:
+              "Define vendor tiers, required controls, and loss exposure by vendor. Strong governance and success index.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -6,
+              successIndex: 6,
+              debtIndex: -3,
+            },
           },
           {
             id: "critical-only",
             label: "Focus on critical vendors only and annual reviews",
-            summary: "Formalize only for critical integrations. Moderate improvement in control and debt.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            summary:
+              "Formalize only for critical integrations. Moderate improvement in control and debt.",
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "defer-program",
             label: "Defer program and rely on contract and insurance",
-            summary: "No formal program yet; rely on contracts and cyber insurance. Debt and incident rate remain elevated.",
+            summary:
+              "No formal program yet; rely on contracts and cyber insurance. Debt and incident rate remain elevated.",
             metricDeltas: { welfareDebt: 3, debtIndex: 3, successIndex: -2 },
           },
         ],
@@ -366,7 +449,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 32,
       meanLossMillions: 18,
       frequencyPerYear: 0.5,
-      topDriver: "OT-to-IT bridge enabling ransomware propagation into production systems",
+      topDriver:
+        "OT-to-IT bridge enabling ransomware propagation into production systems",
     },
     metrics: {
       controlAdoption: 58,
@@ -393,19 +477,32 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "segment-now",
             label: "Segment aggressively and accept downtime risk",
-            summary: "Implement network segmentation between OT and IT immediately. Reduces incident rate and governance debt; may cause production disruption.",
-            metricDeltas: { incidentRate: -5, welfareDebt: -5, successIndex: 5, controlAdoption: 4 },
+            summary:
+              "Implement network segmentation between OT and IT immediately. Reduces incident rate and governance debt; may cause production disruption.",
+            metricDeltas: {
+              incidentRate: -5,
+              welfareDebt: -5,
+              successIndex: 5,
+              controlAdoption: 4,
+            },
           },
           {
             id: "phased-segment",
             label: "Phased segmentation with temporary compensating controls",
-            summary: "Plan segmentation in phases; add monitoring and egress filtering in the meantime. Balanced impact.",
-            metricDeltas: { incidentRate: -2, welfareDebt: -3, successIndex: 4, systemReversibility: 3 },
+            summary:
+              "Plan segmentation in phases; add monitoring and egress filtering in the meantime. Balanced impact.",
+            metricDeltas: {
+              incidentRate: -2,
+              welfareDebt: -3,
+              successIndex: 4,
+              systemReversibility: 3,
+            },
           },
           {
             id: "accept-and-document",
             label: "Accept risk and document for insurance; defer segmentation",
-            summary: "Document residual risk and defer structural change. Incident rate and debt stay high.",
+            summary:
+              "Document residual risk and defer structural change. Incident rate and debt stay high.",
             metricDeltas: { welfareDebt: 4, debtIndex: 4, successIndex: -3 },
           },
         ],
@@ -421,19 +518,33 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "isolate-plant",
             label: "Isolate the affected plant from corporate IT immediately",
-            summary: "Full isolation to prevent spread. Strong reduction in incident rate and debt; production impact.",
-            metricDeltas: { incidentRate: -6, welfareDebt: -4, successIndex: 6, controlAdoption: 2 },
+            summary:
+              "Full isolation to prevent spread. Strong reduction in incident rate and debt; production impact.",
+            metricDeltas: {
+              incidentRate: -6,
+              welfareDebt: -4,
+              successIndex: 6,
+              controlAdoption: 2,
+            },
           },
           {
             id: "isolate-segment",
-            label: "Isolate only the compromised OT segment and increase monitoring",
-            summary: "Targeted containment. Good balance of risk reduction and operations.",
-            metricDeltas: { incidentRate: -3, welfareDebt: -2, successIndex: 4, systemReversibility: 2 },
+            label:
+              "Isolate only the compromised OT segment and increase monitoring",
+            summary:
+              "Targeted containment. Good balance of risk reduction and operations.",
+            metricDeltas: {
+              incidentRate: -3,
+              welfareDebt: -2,
+              successIndex: 4,
+              systemReversibility: 2,
+            },
           },
           {
             id: "monitor-only",
             label: "Enhanced monitoring only; keep production running",
-            summary: "Minimize disruption; risk of spread remains. Incident rate and debt increase.",
+            summary:
+              "Minimize disruption; risk of spread remains. Incident rate and debt increase.",
             metricDeltas: { incidentRate: 3, welfareDebt: 3, successIndex: -4 },
           },
         ],
@@ -449,19 +560,31 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "full-dmz",
             label: "Implement OT/IT DMZ and asset inventory",
-            summary: "Full DMZ, asset inventory, and patch cadence. Strong control adoption and reversibility.",
-            metricDeltas: { controlAdoption: 8, systemReversibility: 6, welfareDebt: -6, successIndex: 6 },
+            summary:
+              "Full DMZ, asset inventory, and patch cadence. Strong control adoption and reversibility.",
+            metricDeltas: {
+              controlAdoption: 8,
+              systemReversibility: 6,
+              welfareDebt: -6,
+              successIndex: 6,
+            },
           },
           {
             id: "critical-paths-only",
             label: "Harden critical paths only; document residual risk",
-            summary: "Secure only the most critical integration paths. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            summary:
+              "Secure only the most critical integration paths. Moderate improvement.",
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "outsource-assessment",
             label: "Commission external assessment and defer major change",
-            summary: "Get an external view; defer structural change. Small gains; debt remains.",
+            summary:
+              "Get an external view; defer structural change. Small gains; debt remains.",
             metricDeltas: { successIndex: 2, welfareDebt: 1, debtIndex: 2 },
           },
         ],
@@ -475,7 +598,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       },
       {
         id: "isa-iec62443",
-        label: "ISA/IEC 62443 Industrial Automation and Control Systems Security",
+        label:
+          "ISA/IEC 62443 Industrial Automation and Control Systems Security",
         url: "https://www.isa.org/standards-and-publications/isa-standards/isa-iec-62443-series-of-standards",
       },
     ],
@@ -514,7 +638,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 22,
       meanLossMillions: 12,
       frequencyPerYear: 0.4,
-      topDriver: "Insider threat via outsourced helpdesk with privileged reset capabilities",
+      topDriver:
+        "Insider threat via outsourced helpdesk with privileged reset capabilities",
     },
     metrics: {
       controlAdoption: 61,
@@ -541,20 +666,37 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "tighten-protocols",
             label: "Tighten reset protocols and monitoring immediately",
-            summary: "Require approval workflows and audit trails for all privileged resets. Improves control adoption and reduces incident rate.",
-            metricDeltas: { controlAdoption: 6, incidentRate: -4, welfareDebt: -3 },
+            summary:
+              "Require approval workflows and audit trails for all privileged resets. Improves control adoption and reduces incident rate.",
+            metricDeltas: {
+              controlAdoption: 6,
+              incidentRate: -4,
+              welfareDebt: -3,
+            },
           },
           {
             id: "insource-critical",
-            label: "Insource critical reset operations and restrict vendor scope",
-            summary: "Bring high-privilege resets in-house; vendor keeps low-privilege only. Strong control and debt improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -5, successIndex: 5, debtIndex: -2 },
+            label:
+              "Insource critical reset operations and restrict vendor scope",
+            summary:
+              "Bring high-privilege resets in-house; vendor keeps low-privilege only. Strong control and debt improvement.",
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -5,
+              successIndex: 5,
+              debtIndex: -2,
+            },
           },
           {
             id: "audit-and-defer",
             label: "Audit and document; defer structural change",
-            summary: "Document risk and defer changes. Small control gain; incident rate and debt stay elevated.",
-            metricDeltas: { controlAdoption: 2, welfareDebt: 2, successIndex: -2 },
+            summary:
+              "Document risk and defer changes. Small control gain; incident rate and debt stay elevated.",
+            metricDeltas: {
+              controlAdoption: 2,
+              welfareDebt: 2,
+              successIndex: -2,
+            },
           },
         ],
       },
@@ -568,21 +710,38 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "remove-access",
-            label: "Require vendor to remove individual from client access immediately",
-            summary: "Immediate removal of access. Reduces incident rate and shows strong governance.",
-            metricDeltas: { incidentRate: -4, welfareDebt: -3, successIndex: 4 },
+            label:
+              "Require vendor to remove individual from client access immediately",
+            summary:
+              "Immediate removal of access. Reduces incident rate and shows strong governance.",
+            metricDeltas: {
+              incidentRate: -4,
+              welfareDebt: -3,
+              successIndex: 4,
+            },
           },
           {
             id: "realtime-monitoring",
-            label: "Add real-time monitoring and alerting on all privileged resets",
-            summary: "Monitor all resets in real time. Improves control adoption and reversibility.",
-            metricDeltas: { controlAdoption: 5, systemReversibility: 3, successIndex: 3 },
+            label:
+              "Add real-time monitoring and alerting on all privileged resets",
+            summary:
+              "Monitor all resets in real time. Improves control adoption and reversibility.",
+            metricDeltas: {
+              controlAdoption: 5,
+              systemReversibility: 3,
+              successIndex: 3,
+            },
           },
           {
             id: "read-only",
             label: "Limit vendor to read-only until investigation completes",
-            summary: "Freeze privileged write access. Balanced; may impact operations.",
-            metricDeltas: { controlAdoption: 3, incidentRate: -2, welfareDebt: -2 },
+            summary:
+              "Freeze privileged write access. Balanced; may impact operations.",
+            metricDeltas: {
+              controlAdoption: 3,
+              incidentRate: -2,
+              welfareDebt: -2,
+            },
           },
         ],
       },
@@ -596,20 +755,33 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "identity-governance",
-            label: "Deploy identity governance platform and vendor performance criteria",
-            summary: "Unified identity governance and vendor SLAs. Strong control adoption and debt reduction.",
-            metricDeltas: { controlAdoption: 7, welfareDebt: -6, successIndex: 5, debtIndex: -3 },
+            label:
+              "Deploy identity governance platform and vendor performance criteria",
+            summary:
+              "Unified identity governance and vendor SLAs. Strong control adoption and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 7,
+              welfareDebt: -6,
+              successIndex: 5,
+              debtIndex: -3,
+            },
           },
           {
             id: "vendor-sla-only",
             label: "Tighten vendor SLAs and audit frequency only",
-            summary: "Contractual and audit improvements. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            summary:
+              "Contractual and audit improvements. Moderate improvement.",
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
             label: "Accept residual risk and document for audit",
-            summary: "Document and accept. Debt and incident rate remain higher.",
+            summary:
+              "Document and accept. Debt and incident rate remain higher.",
             metricDeltas: { welfareDebt: 2, debtIndex: 2 },
           },
         ],
@@ -657,7 +829,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 28,
       meanLossMillions: 15,
       frequencyPerYear: 0.6,
-      topDriver: "Vendor VPN hub enabling lateral movement between client environments",
+      topDriver:
+        "Vendor VPN hub enabling lateral movement between client environments",
     },
     metrics: {
       controlAdoption: 55,
@@ -682,20 +855,34 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "rule-cleanup",
-            label: "Immediate firewall rule cleanup and vendor segmentation review",
-            summary: "Audit and remove obsolete rules; enforce one vendor per segment. Reduces incident rate and governance debt.",
-            metricDeltas: { controlAdoption: 5, incidentRate: -4, welfareDebt: -4, successIndex: 4 },
+            label:
+              "Immediate firewall rule cleanup and vendor segmentation review",
+            summary:
+              "Audit and remove obsolete rules; enforce one vendor per segment. Reduces incident rate and governance debt.",
+            metricDeltas: {
+              controlAdoption: 5,
+              incidentRate: -4,
+              welfareDebt: -4,
+              successIndex: 4,
+            },
           },
           {
             id: "zero-trust-pilot",
             label: "Pilot zero-trust vendor access for highest-risk clients",
-            summary: "Implement least-privilege vendor access for top clients. Strong control and reversibility.",
-            metricDeltas: { controlAdoption: 6, systemReversibility: 4, welfareDebt: -5, debtIndex: -2 },
+            summary:
+              "Implement least-privilege vendor access for top clients. Strong control and reversibility.",
+            metricDeltas: {
+              controlAdoption: 6,
+              systemReversibility: 4,
+              welfareDebt: -5,
+              debtIndex: -2,
+            },
           },
           {
             id: "document-and-defer",
             label: "Document risk and defer cleanup to next budget cycle",
-            summary: "Document and accept until next cycle. Debt and incident rate stay elevated.",
+            summary:
+              "Document and accept until next cycle. Debt and incident rate stay elevated.",
             metricDeltas: { welfareDebt: 3, debtIndex: 3, successIndex: -3 },
           },
         ],
@@ -710,21 +897,36 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "revoke-vendor",
-            label: "Revoke vendor access and require re-onboarding with new controls",
-            summary: "Full revocation and re-onboarding. Strong signal; reduces incident rate and debt.",
-            metricDeltas: { incidentRate: -5, welfareDebt: -4, controlAdoption: 3, successIndex: 4 },
+            label:
+              "Revoke vendor access and require re-onboarding with new controls",
+            summary:
+              "Full revocation and re-onboarding. Strong signal; reduces incident rate and debt.",
+            metricDeltas: {
+              incidentRate: -5,
+              welfareDebt: -4,
+              controlAdoption: 3,
+              successIndex: 4,
+            },
           },
           {
             id: "isolate-segments",
             label: "Isolate affected client segments and add monitoring",
             summary: "Contain spread and monitor. Balanced impact.",
-            metricDeltas: { incidentRate: -3, welfareDebt: -2, controlAdoption: 4 },
+            metricDeltas: {
+              incidentRate: -3,
+              welfareDebt: -2,
+              controlAdoption: 4,
+            },
           },
           {
             id: "monitor-restrict",
             label: "Restrict scope and add monitoring; no revocation",
             summary: "Narrow access and monitor. Moderate improvement.",
-            metricDeltas: { controlAdoption: 3, incidentRate: -2, welfareDebt: -1 },
+            metricDeltas: {
+              controlAdoption: 3,
+              incidentRate: -2,
+              welfareDebt: -1,
+            },
           },
         ],
       },
@@ -738,15 +940,27 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "zero-trust-full",
-            label: "Roll out zero-trust vendor access and quarterly rule reviews",
-            summary: "Full zero-trust and regular cleanup. Strong control adoption and debt reduction.",
-            metricDeltas: { controlAdoption: 8, welfareDebt: -6, systemReversibility: 5, successIndex: 6 },
+            label:
+              "Roll out zero-trust vendor access and quarterly rule reviews",
+            summary:
+              "Full zero-trust and regular cleanup. Strong control adoption and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 8,
+              welfareDebt: -6,
+              systemReversibility: 5,
+              successIndex: 6,
+            },
           },
           {
             id: "segment-and-review",
             label: "Strict segmentation and annual rule reviews",
-            summary: "Enforce segmentation and annual reviews. Moderate improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -4, successIndex: 4 },
+            summary:
+              "Enforce segmentation and annual reviews. Moderate improvement.",
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -4,
+              successIndex: 4,
+            },
           },
           {
             id: "accept-residual",
@@ -817,20 +1031,36 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "lock-and-investigate",
-            label: "Lock bucket, enable logging, and start forensic investigation",
-            summary: "Immediate lock and investigation. Reduces incident rate and improves success index.",
-            metricDeltas: { incidentRate: -4, welfareDebt: -3, successIndex: 5, controlAdoption: 3 },
+            label:
+              "Lock bucket, enable logging, and start forensic investigation",
+            summary:
+              "Immediate lock and investigation. Reduces incident rate and improves success index.",
+            metricDeltas: {
+              incidentRate: -4,
+              welfareDebt: -3,
+              successIndex: 5,
+              controlAdoption: 3,
+            },
           },
           {
             id: "remediate-pipeline",
-            label: "Remediate pipeline to private buckets and enforce access reviews",
-            summary: "Fix pipeline and add access reviews. Strong control and debt improvement.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, systemReversibility: 3, debtIndex: -2 },
+            label:
+              "Remediate pipeline to private buckets and enforce access reviews",
+            summary:
+              "Fix pipeline and add access reviews. Strong control and debt improvement.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              systemReversibility: 3,
+              debtIndex: -2,
+            },
           },
           {
             id: "document-and-notify",
-            label: "Document exposure, notify if required, defer pipeline change",
-            summary: "Comply with notification; defer structural change. Debt stays elevated.",
+            label:
+              "Document exposure, notify if required, defer pipeline change",
+            summary:
+              "Comply with notification; defer structural change. Debt stays elevated.",
             metricDeltas: { successIndex: 2, welfareDebt: 2, debtIndex: 2 },
           },
         ],
@@ -845,21 +1075,36 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "classify-all",
-            label: "Classify all exports and restrict buckets by classification",
-            summary: "Full classification and bucket policy. Strong control adoption.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -4, successIndex: 4 },
+            label:
+              "Classify all exports and restrict buckets by classification",
+            summary:
+              "Full classification and bucket policy. Strong control adoption.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -4,
+              successIndex: 4,
+            },
           },
           {
             id: "reduce-retention",
             label: "Reduce retention and move cold data to restricted Glacier",
-            summary: "Shorter retention and restricted cold storage. Good balance.",
-            metricDeltas: { controlAdoption: 4, incidentRate: -2, welfareDebt: -3 },
+            summary:
+              "Shorter retention and restricted cold storage. Good balance.",
+            metricDeltas: {
+              controlAdoption: 4,
+              incidentRate: -2,
+              welfareDebt: -3,
+            },
           },
           {
             id: "dlp-only",
             label: "Add DLP and monitoring; keep current retention",
             summary: "DLP and monitoring only. Moderate improvement.",
-            metricDeltas: { controlAdoption: 3, incidentRate: -1, welfareDebt: -1 },
+            metricDeltas: {
+              controlAdoption: 3,
+              incidentRate: -1,
+              welfareDebt: -1,
+            },
           },
         ],
       },
@@ -874,14 +1119,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "cspm-and-policy",
             label: "Deploy CSPM and enforce bucket policy as code",
-            summary: "CSPM and policy-as-code. Strong control and reversibility.",
-            metricDeltas: { controlAdoption: 7, systemReversibility: 5, welfareDebt: -5, debtIndex: -3 },
+            summary:
+              "CSPM and policy-as-code. Strong control and reversibility.",
+            metricDeltas: {
+              controlAdoption: 7,
+              systemReversibility: 5,
+              welfareDebt: -5,
+              debtIndex: -3,
+            },
           },
           {
             id: "quarterly-reviews",
             label: "Quarterly access and bucket reviews only",
             summary: "Regular reviews. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -937,7 +1192,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       systemReversibility: 18,
       debtIndex: 26,
     },
-    fairFocus: "Recovery and secondary loss; LEF and LM from extended downtime.",
+    fairFocus:
+      "Recovery and secondary loss; LEF and LM from extended downtime.",
     steps: [
       {
         id: "intro",
@@ -953,14 +1209,23 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "full-recovery-test",
             label: "Run full recovery test and fix gaps before next incident",
-            summary: "Validate RTO and fix failures. Improves reversibility and success index.",
-            metricDeltas: { systemReversibility: 6, successIndex: 5, welfareDebt: -4 },
+            summary:
+              "Validate RTO and fix failures. Improves reversibility and success index.",
+            metricDeltas: {
+              systemReversibility: 6,
+              successIndex: 5,
+              welfareDebt: -4,
+            },
           },
           {
             id: "incremental-test",
             label: "Incremental recovery tests and document current RTO",
             summary: "Test in phases and document actual RTO. Balanced impact.",
-            metricDeltas: { systemReversibility: 4, successIndex: 3, welfareDebt: -2 },
+            metricDeltas: {
+              systemReversibility: 4,
+              successIndex: 3,
+              welfareDebt: -2,
+            },
           },
           {
             id: "document-and-defer",
@@ -981,20 +1246,35 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "continue-restore",
             label: "Continue current restore and communicate revised RTO",
-            summary: "Complete restore and set realistic expectations. Improves success index.",
-            metricDeltas: { successIndex: 4, incidentRate: -2, welfareDebt: -2 },
+            summary:
+              "Complete restore and set realistic expectations. Improves success index.",
+            metricDeltas: {
+              successIndex: 4,
+              incidentRate: -2,
+              welfareDebt: -2,
+            },
           },
           {
             id: "failover-dr",
             label: "Fail over to DR with partial data and accept data loss",
-            summary: "DR failover; accept some data loss. Contains incident; reversibility still at risk.",
-            metricDeltas: { incidentRate: -4, welfareDebt: -3, systemReversibility: -2 },
+            summary:
+              "DR failover; accept some data loss. Contains incident; reversibility still at risk.",
+            metricDeltas: {
+              incidentRate: -4,
+              welfareDebt: -3,
+              systemReversibility: -2,
+            },
           },
           {
             id: "major-incident",
             label: "Declare major incident and escalate to board",
-            summary: "Full escalation. Strong governance signal; debt and success improve.",
-            metricDeltas: { successIndex: 5, welfareDebt: -4, controlAdoption: 2 },
+            summary:
+              "Full escalation. Strong governance signal; debt and success improve.",
+            metricDeltas: {
+              successIndex: 5,
+              welfareDebt: -4,
+              controlAdoption: 2,
+            },
           },
         ],
       },
@@ -1009,14 +1289,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "quarterly-rto",
             label: "Quarterly recovery tests and RTO validation",
-            summary: "Regular tests and validated RTOs. Strong reversibility and debt reduction.",
-            metricDeltas: { systemReversibility: 7, welfareDebt: -6, successIndex: 6, debtIndex: -3 },
+            summary:
+              "Regular tests and validated RTOs. Strong reversibility and debt reduction.",
+            metricDeltas: {
+              systemReversibility: 7,
+              welfareDebt: -6,
+              successIndex: 6,
+              debtIndex: -3,
+            },
           },
           {
             id: "annual-test",
             label: "Annual full test and updated runbooks",
             summary: "Annual test and runbooks. Moderate improvement.",
-            metricDeltas: { systemReversibility: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              systemReversibility: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1062,7 +1352,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 22,
       meanLossMillions: 12,
       frequencyPerYear: 0.5,
-      topDriver: "Shadow analytics cluster holding production PII with weak access controls",
+      topDriver:
+        "Shadow analytics cluster holding production PII with weak access controls",
     },
     metrics: {
       controlAdoption: 68,
@@ -1087,15 +1378,26 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         choices: [
           {
             id: "shut-and-migrate",
-            label: "Shut down cluster and migrate workloads to approved sandbox",
-            summary: "Eliminate shadow environment. Strong control adoption and debt reduction.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, successIndex: 4, incidentRate: -2 },
+            label:
+              "Shut down cluster and migrate workloads to approved sandbox",
+            summary:
+              "Eliminate shadow environment. Strong control adoption and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              successIndex: 4,
+              incidentRate: -2,
+            },
           },
           {
             id: "bring-under-governance",
             label: "Bring under governance with access controls and DLP",
             summary: "Govern in place. Balanced control and reversibility.",
-            metricDeltas: { controlAdoption: 5, systemReversibility: 3, welfareDebt: -3 },
+            metricDeltas: {
+              controlAdoption: 5,
+              systemReversibility: 3,
+              welfareDebt: -3,
+            },
           },
           {
             id: "document-and-monitor",
@@ -1116,20 +1418,34 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "deidentify",
             label: "De-identify data in place and restrict access",
-            summary: "De-identify and restrict. Reduces incident impact and improves control.",
-            metricDeltas: { controlAdoption: 4, incidentRate: -3, welfareDebt: -3 },
+            summary:
+              "De-identify and restrict. Reduces incident impact and improves control.",
+            metricDeltas: {
+              controlAdoption: 4,
+              incidentRate: -3,
+              welfareDebt: -3,
+            },
           },
           {
             id: "purge-restrict",
             label: "Purge PII and restrict to aggregated data only",
-            summary: "Remove PII; aggregated only. Strong control and debt improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -4, successIndex: 4 },
+            summary:
+              "Remove PII; aggregated only. Strong control and debt improvement.",
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -4,
+              successIndex: 4,
+            },
           },
           {
             id: "encrypt-only",
             label: "Encrypt at rest and add monitoring",
             summary: "Encrypt and monitor. Moderate improvement.",
-            metricDeltas: { controlAdoption: 3, incidentRate: -1, welfareDebt: -1 },
+            metricDeltas: {
+              controlAdoption: 3,
+              incidentRate: -1,
+              welfareDebt: -1,
+            },
           },
         ],
       },
@@ -1145,13 +1461,22 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
             id: "catalog-and-policy",
             label: "Data catalog, classification, and policy-based access",
             summary: "Catalog and policy. Strong control and reversibility.",
-            metricDeltas: { controlAdoption: 7, systemReversibility: 5, welfareDebt: -5, debtIndex: -3 },
+            metricDeltas: {
+              controlAdoption: 7,
+              systemReversibility: 5,
+              welfareDebt: -5,
+              debtIndex: -3,
+            },
           },
           {
             id: "sandbox-only",
             label: "Strict sandbox-only policy and quarterly reviews",
             summary: "Sandbox-only and reviews. Moderate improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1197,7 +1522,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 20,
       meanLossMillions: 11,
       frequencyPerYear: 0.45,
-      topDriver: "Inconsistent authorization across layers enabling privilege escalation",
+      topDriver:
+        "Inconsistent authorization across layers enabling privilege escalation",
     },
     metrics: {
       controlAdoption: 66,
@@ -1223,19 +1549,31 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "unified-model",
             label: "Design and implement a unified authorization model",
-            summary: "Single model across gateway, app, and DB. Strong control adoption and reversibility.",
-            metricDeltas: { controlAdoption: 6, systemReversibility: 5, welfareDebt: -5, successIndex: 4 },
+            summary:
+              "Single model across gateway, app, and DB. Strong control adoption and reversibility.",
+            metricDeltas: {
+              controlAdoption: 6,
+              systemReversibility: 5,
+              welfareDebt: -5,
+              successIndex: 4,
+            },
           },
           {
             id: "audit-and-patch",
             label: "Audit all paths and patch inconsistencies",
-            summary: "Find and fix inconsistencies. Moderate improvement; technical debt remains.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, incidentRate: -2 },
+            summary:
+              "Find and fix inconsistencies. Moderate improvement; technical debt remains.",
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              incidentRate: -2,
+            },
           },
           {
             id: "document-and-defer",
             label: "Document gaps and defer unified model to roadmap",
-            summary: "Document and defer. Debt and incident rate stay elevated.",
+            summary:
+              "Document and defer. Debt and incident rate stay elevated.",
             metricDeltas: { welfareDebt: 3, debtIndex: 2, successIndex: -2 },
           },
         ],
@@ -1251,14 +1589,25 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "fix-critical",
             label: "Fix critical paths and add integration tests",
-            summary: "Fix highest-risk paths and lock in with tests. Reduces incident rate and debt.",
-            metricDeltas: { incidentRate: -4, welfareDebt: -4, controlAdoption: 3, successIndex: 4 },
+            summary:
+              "Fix highest-risk paths and lock in with tests. Reduces incident rate and debt.",
+            metricDeltas: {
+              incidentRate: -4,
+              welfareDebt: -4,
+              controlAdoption: 3,
+              successIndex: 4,
+            },
           },
           {
             id: "runtime-checks",
             label: "Add runtime authorization checks and alerting",
-            summary: "Detect and alert on mismatches. Improves control and reversibility.",
-            metricDeltas: { controlAdoption: 4, systemReversibility: 3, successIndex: 3 },
+            summary:
+              "Detect and alert on mismatches. Improves control and reversibility.",
+            metricDeltas: {
+              controlAdoption: 4,
+              systemReversibility: 3,
+              successIndex: 3,
+            },
           },
           {
             id: "document-prioritize",
@@ -1280,13 +1629,22 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
             id: "centralized-policy",
             label: "Centralized policy engine and consistent enforcement",
             summary: "Single policy engine. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 7, welfareDebt: -6, systemReversibility: 5, debtIndex: -3 },
+            metricDeltas: {
+              controlAdoption: 7,
+              welfareDebt: -6,
+              systemReversibility: 5,
+              debtIndex: -3,
+            },
           },
           {
             id: "standardize-layers",
             label: "Standardize checks across gateway and app layers",
             summary: "Consistent checks across layers. Moderate improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1332,7 +1690,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 16,
       meanLossMillions: 9,
       frequencyPerYear: 0.4,
-      topDriver: "Fragmented logging delaying detection and response to transaction fraud",
+      topDriver:
+        "Fragmented logging delaying detection and response to transaction fraud",
     },
     metrics: {
       controlAdoption: 70,
@@ -1357,14 +1716,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "unified-pipeline",
             label: "Build unified transaction log pipeline and correlation",
-            summary: "Single pipeline for critical path. Strong control and reversibility.",
-            metricDeltas: { controlAdoption: 6, systemReversibility: 5, welfareDebt: -4, successIndex: 5 },
+            summary:
+              "Single pipeline for critical path. Strong control and reversibility.",
+            metricDeltas: {
+              controlAdoption: 6,
+              systemReversibility: 5,
+              welfareDebt: -4,
+              successIndex: 5,
+            },
           },
           {
             id: "critical-path-only",
             label: "Instrument critical path only with end-to-end IDs",
             summary: "End-to-end IDs on critical path. Balanced improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, incidentRate: -2 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              incidentRate: -2,
+            },
           },
           {
             id: "document-and-defer",
@@ -1385,8 +1754,13 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "temp-correlation",
             label: "Add temporary correlation and dashboards for this path",
-            summary: "Quick win for this path. Improves success index and incident response.",
-            metricDeltas: { successIndex: 4, incidentRate: -2, welfareDebt: -2 },
+            summary:
+              "Quick win for this path. Improves success index and incident response.",
+            metricDeltas: {
+              successIndex: 4,
+              incidentRate: -2,
+              welfareDebt: -2,
+            },
           },
           {
             id: "escalate-manual",
@@ -1413,14 +1787,25 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "soc-and-pipeline",
             label: "Unified pipeline and SOC playbooks for critical path",
-            summary: "Pipeline and playbooks. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 7, welfareDebt: -5, successIndex: 6, debtIndex: -2 },
+            summary:
+              "Pipeline and playbooks. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 7,
+              welfareDebt: -5,
+              successIndex: 6,
+              debtIndex: -2,
+            },
           },
           {
             id: "playbooks-only",
             label: "Playbooks and runbooks; incremental pipeline",
-            summary: "Playbooks first; pipeline incremental. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            summary:
+              "Playbooks first; pipeline incremental. Moderate improvement.",
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1466,7 +1851,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 18,
       meanLossMillions: 10,
       frequencyPerYear: 0.35,
-      topDriver: "Cross-border data flows with unclear legal basis and outdated documentation",
+      topDriver:
+        "Cross-border data flows with unclear legal basis and outdated documentation",
     },
     metrics: {
       controlAdoption: 64,
@@ -1492,14 +1878,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "full-mapping",
             label: "Full data flow mapping and DPIA refresh",
-            summary: "Map all flows and refresh DPIAs. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -5, successIndex: 5, debtIndex: -2 },
+            summary:
+              "Map all flows and refresh DPIAs. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -5,
+              successIndex: 5,
+              debtIndex: -2,
+            },
           },
           {
             id: "critical-flows-only",
             label: "Map critical flows and document legal basis",
             summary: "Critical flows and basis. Balanced improvement.",
-            metricDeltas: { controlAdoption: 3, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 3,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "document-and-defer",
@@ -1520,14 +1916,20 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "quick-summary",
             label: "Produce quick summary from existing docs and flag gaps",
-            summary: "Transparent summary. Improves success index; some debt remains.",
+            summary:
+              "Transparent summary. Improves success index; some debt remains.",
             metricDeltas: { successIndex: 4, welfareDebt: -2 },
           },
           {
             id: "full-audit",
             label: "Commission full audit and correct documentation",
-            summary: "Full audit and correction. Strong control and debt improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -5, successIndex: 5 },
+            summary:
+              "Full audit and correction. Strong control and debt improvement.",
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -5,
+              successIndex: 5,
+            },
           },
           {
             id: "extension",
@@ -1548,14 +1950,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "governance-program",
             label: "Data governance program and flow approval process",
-            summary: "Governance program and approval. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, systemReversibility: 3, debtIndex: -3 },
+            summary:
+              "Governance program and approval. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              systemReversibility: 3,
+              debtIndex: -3,
+            },
           },
           {
             id: "annual-review",
             label: "Annual flow review and documentation",
             summary: "Annual review. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1601,7 +2013,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 32,
       meanLossMillions: 22,
       frequencyPerYear: 0.5,
-      topDriver: "Revenue-critical workload on unsupported OS with no security patches",
+      topDriver:
+        "Revenue-critical workload on unsupported OS with no security patches",
     },
     metrics: {
       controlAdoption: 59,
@@ -1627,14 +2040,26 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "migrate-now",
             label: "Accelerate migration with dedicated program",
-            summary: "Full migration program. Strong reversibility and debt reduction; cost and risk in short term.",
-            metricDeltas: { systemReversibility: 7, welfareDebt: -6, successIndex: 5, controlAdoption: 3 },
+            summary:
+              "Full migration program. Strong reversibility and debt reduction; cost and risk in short term.",
+            metricDeltas: {
+              systemReversibility: 7,
+              welfareDebt: -6,
+              successIndex: 5,
+              controlAdoption: 3,
+            },
           },
           {
             id: "isolate-and-harden",
             label: "Isolate and harden in place while planning migration",
-            summary: "Network isolation and hardening; migration in plan. Balanced impact.",
-            metricDeltas: { controlAdoption: 5, incidentRate: -3, welfareDebt: -3, successIndex: 3 },
+            summary:
+              "Network isolation and hardening; migration in plan. Balanced impact.",
+            metricDeltas: {
+              controlAdoption: 5,
+              incidentRate: -3,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "document-and-defer",
@@ -1655,14 +2080,23 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "isolate-now",
             label: "Isolate system from network and accelerate migration",
-            summary: "Immediate isolation and migration. Strong incident and debt reduction.",
-            metricDeltas: { incidentRate: -5, welfareDebt: -4, successIndex: 5 },
+            summary:
+              "Immediate isolation and migration. Strong incident and debt reduction.",
+            metricDeltas: {
+              incidentRate: -5,
+              welfareDebt: -4,
+              successIndex: 5,
+            },
           },
           {
             id: "compensating",
             label: "Add compensating controls and monitor closely",
             summary: "Compensating controls. Moderate improvement.",
-            metricDeltas: { controlAdoption: 3, incidentRate: -2, welfareDebt: -2 },
+            metricDeltas: {
+              controlAdoption: 3,
+              incidentRate: -2,
+              welfareDebt: -2,
+            },
           },
           {
             id: "accept-risk",
@@ -1683,14 +2117,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "lifecycle-policy",
             label: "Platform lifecycle policy and mandatory refresh",
-            summary: "Lifecycle policy and refresh. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, systemReversibility: 5, debtIndex: -3 },
+            summary:
+              "Lifecycle policy and refresh. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              systemReversibility: 5,
+              debtIndex: -3,
+            },
           },
           {
             id: "critical-only",
             label: "Lifecycle for critical systems only",
             summary: "Critical systems only. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1736,7 +2180,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 26,
       meanLossMillions: 15,
       frequencyPerYear: 0.5,
-      topDriver: "Complex identity federation chain with fragile trust and misconfiguration risk",
+      topDriver:
+        "Complex identity federation chain with fragile trust and misconfiguration risk",
     },
     metrics: {
       controlAdoption: 67,
@@ -1762,14 +2207,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "simplify-chain",
             label: "Simplify chain and consolidate to fewer trusted hops",
-            summary: "Reduce hops and consolidate. Strong control and reversibility.",
-            metricDeltas: { controlAdoption: 6, systemReversibility: 5, welfareDebt: -5, successIndex: 4 },
+            summary:
+              "Reduce hops and consolidate. Strong control and reversibility.",
+            metricDeltas: {
+              controlAdoption: 6,
+              systemReversibility: 5,
+              welfareDebt: -5,
+              successIndex: 4,
+            },
           },
           {
             id: "document-and-monitor",
             label: "Document trust boundaries and add monitoring",
             summary: "Document and monitor. Balanced improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, incidentRate: -2 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              incidentRate: -2,
+            },
           },
           {
             id: "accept-residual",
@@ -1797,13 +2252,22 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
             id: "fix-and-document",
             label: "Fix and document failure modes and runbooks",
             summary: "Fix and document. Improves success and debt.",
-            metricDeltas: { successIndex: 4, welfareDebt: -3, controlAdoption: 2 },
+            metricDeltas: {
+              successIndex: 4,
+              welfareDebt: -3,
+              controlAdoption: 2,
+            },
           },
           {
             id: "add-redundancy",
             label: "Add redundancy and automated rollover testing",
-            summary: "Redundancy and testing. Strong control and reversibility.",
-            metricDeltas: { controlAdoption: 5, systemReversibility: 4, welfareDebt: -4 },
+            summary:
+              "Redundancy and testing. Strong control and reversibility.",
+            metricDeltas: {
+              controlAdoption: 5,
+              systemReversibility: 4,
+              welfareDebt: -4,
+            },
           },
         ],
       },
@@ -1818,14 +2282,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "unified-trust",
             label: "Unified trust model and partner security requirements",
-            summary: "Unified model and partner requirements. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 7, welfareDebt: -6, successIndex: 5, debtIndex: -3 },
+            summary:
+              "Unified model and partner requirements. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 7,
+              welfareDebt: -6,
+              successIndex: 5,
+              debtIndex: -3,
+            },
           },
           {
             id: "partner-audits",
             label: "Regular partner audits and certificate lifecycle",
             summary: "Audits and lifecycle. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -1871,7 +2345,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 14,
       meanLossMillions: 8,
       frequencyPerYear: 0.6,
-      topDriver: "Payment rails crossing trust zones with weak segregation and agent risk",
+      topDriver:
+        "Payment rails crossing trust zones with weak segregation and agent risk",
     },
     metrics: {
       controlAdoption: 54,
@@ -1881,7 +2356,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       systemReversibility: 21,
       debtIndex: 27,
     },
-    fairFocus: "Trust boundaries and loss magnitude (LM); payment and agent risk.",
+    fairFocus:
+      "Trust boundaries and loss magnitude (LM); payment and agent risk.",
     steps: [
       {
         id: "intro",
@@ -1897,14 +2373,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "strict-segregation",
             label: "Strict segregation between consumer, agent, and core",
-            summary: "Enforce strict boundaries. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, incidentRate: -4, successIndex: 4 },
+            summary:
+              "Enforce strict boundaries. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              incidentRate: -4,
+              successIndex: 4,
+            },
           },
           {
             id: "agent-hardening",
             label: "Agent hardening and transaction monitoring",
             summary: "Harden agent channel and monitor. Balanced improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, incidentRate: -2 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              incidentRate: -2,
+            },
           },
           {
             id: "document-and-defer",
@@ -1926,13 +2412,21 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
             id: "suspend-agent",
             label: "Suspend agent and investigate",
             summary: "Immediate suspension. Reduces incident rate and debt.",
-            metricDeltas: { incidentRate: -4, welfareDebt: -3, successIndex: 4 },
+            metricDeltas: {
+              incidentRate: -4,
+              welfareDebt: -3,
+              successIndex: 4,
+            },
           },
           {
             id: "monitor-and-restrict",
             label: "Add monitoring and restrict transaction limits",
             summary: "Monitor and restrict. Balanced impact.",
-            metricDeltas: { controlAdoption: 3, incidentRate: -2, welfareDebt: -2 },
+            metricDeltas: {
+              controlAdoption: 3,
+              incidentRate: -2,
+              welfareDebt: -2,
+            },
           },
           {
             id: "read-only",
@@ -1953,14 +2447,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "agent-program",
             label: "Formal agent risk program and segregation",
-            summary: "Agent program and segregation. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 7, welfareDebt: -6, successIndex: 5, debtIndex: -3 },
+            summary:
+              "Agent program and segregation. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 7,
+              welfareDebt: -6,
+              successIndex: 5,
+              debtIndex: -3,
+            },
           },
           {
             id: "monitoring-only",
             label: "Enhanced monitoring and agent audits",
             summary: "Monitoring and audits. Moderate improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -2006,7 +2510,8 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
       netP90Millions: 22,
       meanLossMillions: 14,
       frequencyPerYear: 0.55,
-      topDriver: "Software supply chain compromise via build pipeline or third-party dependency",
+      topDriver:
+        "Software supply chain compromise via build pipeline or third-party dependency",
     },
     metrics: {
       controlAdoption: 62,
@@ -2032,14 +2537,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "lock-and-verify",
             label: "Lock dependencies and verify integrity",
-            summary: "Lockfile and verification. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 6, welfareDebt: -5, incidentRate: -3, successIndex: 4 },
+            summary:
+              "Lockfile and verification. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 6,
+              welfareDebt: -5,
+              incidentRate: -3,
+              successIndex: 4,
+            },
           },
           {
             id: "sbom-and-scan",
             label: "SBOM and vulnerability scanning in pipeline",
             summary: "SBOM and scanning. Balanced improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -3, systemReversibility: 2 },
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -3,
+              systemReversibility: 2,
+            },
           },
           {
             id: "document-and-defer",
@@ -2060,14 +2575,23 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "patch-redeploy",
             label: "Patch and redeploy all affected artifacts",
-            summary: "Full patch and redeploy. Strong incident and debt reduction.",
-            metricDeltas: { incidentRate: -5, welfareDebt: -4, successIndex: 5 },
+            summary:
+              "Full patch and redeploy. Strong incident and debt reduction.",
+            metricDeltas: {
+              incidentRate: -5,
+              welfareDebt: -4,
+              successIndex: 5,
+            },
           },
           {
             id: "quarantine-replace",
             label: "Quarantine and replace dependency",
             summary: "Quarantine and replace. Good control improvement.",
-            metricDeltas: { controlAdoption: 4, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 4,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "monitor-only",
@@ -2088,14 +2612,24 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
           {
             id: "full-program",
             label: "Supply chain security program and signed artifacts",
-            summary: "Full program and signing. Strong control and debt reduction.",
-            metricDeltas: { controlAdoption: 7, welfareDebt: -6, systemReversibility: 4, debtIndex: -3 },
+            summary:
+              "Full program and signing. Strong control and debt reduction.",
+            metricDeltas: {
+              controlAdoption: 7,
+              welfareDebt: -6,
+              systemReversibility: 4,
+              debtIndex: -3,
+            },
           },
           {
             id: "scan-and-review",
             label: "Vulnerability scanning and dependency review",
             summary: "Scanning and review. Moderate improvement.",
-            metricDeltas: { controlAdoption: 5, welfareDebt: -3, successIndex: 3 },
+            metricDeltas: {
+              controlAdoption: 5,
+              welfareDebt: -3,
+              successIndex: 3,
+            },
           },
           {
             id: "accept-residual",
@@ -2108,4 +2642,3 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
     ],
   },
 ];
-
