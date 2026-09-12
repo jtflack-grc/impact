@@ -13,30 +13,54 @@ type GuideStep = {
   focus: "grossP90" | "netP90" | "frequency" | null;
 };
 
+const VOICE_STORAGE_KEY = "impact-guided-voice-uri";
+
+function voiceQualityScore(voice: SpeechSynthesisVoice): number {
+  const name = voice.name.toLowerCase();
+  let score = 0;
+  if (!voice.localService) score += 120;
+  if (/natural|neural|online|premium/.test(name)) score += 100;
+  if (/aria|jenny|ava|guy|sonia|ryan|libby/.test(name)) score += 45;
+  if (/google us english|samantha/.test(name)) score += 35;
+  if (/zira|hazel/.test(name)) score += 18;
+  if (voice.lang.toLowerCase() === "en-us") score += 12;
+  if (/david|mark/.test(name)) score -= 8;
+  return score;
+}
+
+function isHighQualityVoice(voice: SpeechSynthesisVoice): boolean {
+  const name = voice.name.toLowerCase();
+  return !voice.localService || /natural|neural|online|premium/.test(name);
+}
+
 function choosePreferredVoice(
   voices: SpeechSynthesisVoice[]
 ): SpeechSynthesisVoice | null {
-  if (voices.length === 0) return null;
-  const preferred = [
-    "natural",
-    "neural",
-    "aria",
-    "jenny",
-    "ava",
-    "guy",
-    "google us english",
-    "samantha",
-  ];
   const english = voices.filter((voice) =>
     voice.lang.toLowerCase().startsWith("en")
   );
-  for (const needle of preferred) {
-    const match = english.find((voice) =>
-      voice.name.toLowerCase().includes(needle)
-    );
-    if (match) return match;
+  const candidates = english.length > 0 ? english : voices;
+  return (
+    [...candidates].sort(
+      (a, b) => voiceQualityScore(b) - voiceQualityScore(a)
+    )[0] ?? null
+  );
+}
+
+function configureUtterance(
+  utterance: SpeechSynthesisUtterance,
+  voice: SpeechSynthesisVoice | null
+) {
+  if (voice) {
+    utterance.voice = voice;
+    utterance.lang = voice.lang;
+  } else {
+    utterance.lang = "en-US";
   }
-  return english[0] ?? voices[0] ?? null;
+  const highQuality = voice ? isHighQualityVoice(voice) : false;
+  utterance.rate = highQuality ? 0.97 : 0.88;
+  utterance.pitch = highQuality ? 1 : 1.03;
+  utterance.volume = 0.94;
 }
 
 export function GuidedScenarioMode() {
@@ -66,6 +90,11 @@ export function GuidedScenarioMode() {
   );
   const [playing, setPlaying] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState(() =>
+    typeof window === "undefined"
+      ? ""
+      : (window.localStorage.getItem(VOICE_STORAGE_KEY) ?? "")
+  );
 
   const analysis = useMemo(
     () => deriveImpactAnalysis(scenario, activeMetrics),
@@ -114,7 +143,27 @@ export function GuidedScenarioMode() {
 
   const safeStep = Math.min(guidedStep, steps.length - 1);
   const current = steps[safeStep];
-  const preferredVoice = useMemo(() => choosePreferredVoice(voices), [voices]);
+  const englishVoices = useMemo(
+    () =>
+      voices
+        .filter((voice) => voice.lang.toLowerCase().startsWith("en"))
+        .sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a)),
+    [voices]
+  );
+  const preferredVoice = useMemo(
+    () => choosePreferredVoice(englishVoices),
+    [englishVoices]
+  );
+  const selectedVoice = useMemo(
+    () =>
+      englishVoices.find((voice) => voice.voiceURI === selectedVoiceURI) ??
+      preferredVoice,
+    [englishVoices, preferredVoice, selectedVoiceURI]
+  );
+  const naturalVoiceAvailable = englishVoices.some(isHighQualityVoice);
+  const isFirefox =
+    typeof navigator !== "undefined" &&
+    navigator.userAgent.includes("Firefox/");
 
   useEffect(() => {
     if (!("speechSynthesis" in window)) return;
@@ -145,13 +194,10 @@ export function GuidedScenarioMode() {
     const utterance = new SpeechSynthesisUtterance(
       `${current.title}. ${current.text}`
     );
-    if (preferredVoice) utterance.voice = preferredVoice;
-    utterance.rate = 0.93;
-    utterance.pitch = 0.98;
-    utterance.volume = 0.92;
+    configureUtterance(utterance, selectedVoice);
     synth.speak(utterance);
     return () => synth.cancel();
-  }, [current, guidedActive, guidedVoice, preferredVoice]);
+  }, [current, guidedActive, guidedVoice, selectedVoice]);
 
   useEffect(() => {
     if (!guidedActive || !playing || safeStep >= steps.length - 1) return;
@@ -171,6 +217,23 @@ export function GuidedScenarioMode() {
   ]);
 
   if (!guidedActive) return null;
+
+  const updateSelectedVoice = (voiceURI: string) => {
+    setSelectedVoiceURI(voiceURI);
+    if (voiceURI) window.localStorage.setItem(VOICE_STORAGE_KEY, voiceURI);
+    else window.localStorage.removeItem(VOICE_STORAGE_KEY);
+  };
+
+  const previewVoice = () => {
+    if (!("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(
+      "Impact guided briefing. Quantified cyber risk, translated into business consequence."
+    );
+    configureUtterance(utterance, selectedVoice);
+    synth.speak(utterance);
+  };
 
   const exit = () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
@@ -194,7 +257,7 @@ export function GuidedScenarioMode() {
             type="button"
             onClick={() => setGuidedVoice(!guidedVoice)}
             className={`border px-2 py-1 ${guidedVoice ? "border-emerald-400/50 text-emerald-300" : "border-war-border text-war-muted"}`}
-            title={preferredVoice?.name ?? "System speech voice"}
+            title={selectedVoice?.name ?? "System speech voice"}
           >
             Voice {guidedVoice ? "on" : "off"}
           </button>
@@ -219,8 +282,44 @@ export function GuidedScenarioMode() {
           {current.text}
         </p>
         {guidedVoice && (
-          <div className="mt-2 font-mono text-[9px] text-slate-500">
-            Voice: {preferredVoice?.name ?? "system default"}
+          <div className="mt-3 border-t border-war-border/70 pt-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <select
+                value={selectedVoiceURI}
+                onChange={(event) => updateSelectedVoice(event.target.value)}
+                className="min-w-0 flex-1 border border-war-border bg-black/70 px-2 py-1.5 text-[10px] text-slate-300"
+                aria-label="Guided narration voice"
+              >
+                <option value="">
+                  Auto · {preferredVoice?.name ?? "system default"}
+                </option>
+                {englishVoices.map((voice) => (
+                  <option key={voice.voiceURI} value={voice.voiceURI}>
+                    {voice.name} · {voice.localService ? "local" : "online"}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={previewVoice}
+                className="border border-war-border px-2.5 py-1.5 text-[10px] text-war-muted hover:text-war-white"
+              >
+                Preview
+              </button>
+            </div>
+            <div className="mt-2 font-mono text-[9px] text-slate-500">
+              Selected: {selectedVoice?.name ?? "system default"}
+              {selectedVoice
+                ? ` · ${isHighQualityVoice(selectedVoice) ? "natural/online candidate" : "local system voice"}`
+                : ""}
+            </div>
+            {!naturalVoiceAvailable && (
+              <div className="mt-2 border-l-2 border-amber-500/60 pl-2 text-[10px] leading-relaxed text-amber-200/80">
+                {isFirefox
+                  ? "Firefox is only exposing local system voices here. Pick the best installed option above, or open Impact in Edge for a better chance of an online natural voice."
+                  : "This browser is only exposing local system voices. Pick the best installed option above; a browser with online speech voices may sound substantially more natural."}
+              </div>
+            )}
           </div>
         )}
       </div>
