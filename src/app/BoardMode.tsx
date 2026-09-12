@@ -177,9 +177,9 @@ export function BoardMode() {
           <p className="mt-3 max-w-5xl text-sm leading-relaxed text-war-muted">
             The board's role here isn't to optimize the FAIR model. It's to
             decide whether management's proposed posture, capital allocation,
-            and retained exposure are acceptable given the business
-            consequence, and whether additional mitigation, transfer, or
-            evidence is required before accepting the risk.
+            and retained exposure are acceptable given the business consequence,
+            and whether additional mitigation, transfer, or evidence is required
+            before accepting the risk.
           </p>
         </div>
 
