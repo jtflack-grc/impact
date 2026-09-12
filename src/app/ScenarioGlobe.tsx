@@ -217,18 +217,19 @@ export function ScenarioGlobe() {
       }
     }
 
-    // Use a wide, mostly top-down regional framing. The previous 620 km / -48°
-    // camera read like a low flyover in the narrow third rail. This keeps the
-    // scenario location central while showing enough Earth to feel like a globe.
+    // Treat the Earth itself as the subject. The third rail is tall and narrow,
+    // so a regional camera still crops the sphere even at several thousand km.
+    // This straight-on orbital framing leaves margin around the full globe while
+    // keeping the active scenario hemisphere facing the viewer.
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
         scenario.longitude,
         scenario.latitude,
-        1_900_000
+        22_000_000
       ),
       orientation: {
         heading: Cesium.Math.toRadians(0),
-        pitch: Cesium.Math.toRadians(-72),
+        pitch: Cesium.Math.toRadians(-90),
         roll: 0,
       },
       duration: 1.6,
