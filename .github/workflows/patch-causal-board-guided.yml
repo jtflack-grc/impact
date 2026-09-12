@@ -1,0 +1,114 @@
+name: Patch causal board guided
+
+on:
+  push:
+    branches:
+      - feat/causal-board-guided
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[cbg-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/causal-board-guided
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Wire shared analysis, causal trace and guided camera replay
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          dashboard = Path('src/app/MetricsDashboard.tsx')
+          text = dashboard.read_text()
+          import_anchor = 'import { dcfFromCashFlows } from "../model/dcf";\n'
+          helper_import = 'import { deriveImpactAnalysis } from "../model/impactAnalysis";\n'
+          if helper_import not in text:
+              if import_anchor not in text:
+                  raise SystemExit('dashboard import anchor missing')
+              text = text.replace(import_anchor, import_anchor + helper_import, 1)
+
+          pattern = re.compile(
+              r'  // Derive dynamic loss values using proper FAIR relationships\n.*?  \}, \[scenario\.lossProfile, activeMetrics\.controlAdoption\]\);\n',
+              re.S,
+          )
+          replacement = '''  // Shared FAIR teaching model: LEF = TEF × Vulnerability, scaled from the scenario baseline.\n  const impactAnalysis = useMemo(\n    () => deriveImpactAnalysis(scenario, activeMetrics),\n    [activeMetrics, scenario]\n  );\n  const dynamicLossProfile = impactAnalysis.loss;\n'''
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'dashboard analysis block replacements: {count}')
+          dashboard.write_text(text)
+
+          chat = Path('src/app/ChatPanel.tsx')
+          text = chat.read_text()
+          chat_import_anchor = 'import { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";\n'
+          why_import = 'import { WhyDidThisChange } from "./WhyDidThisChange";\n'
+          if why_import not in text:
+              if chat_import_anchor not in text:
+                  raise SystemExit('chat import anchor missing')
+              text = text.replace(chat_import_anchor, chat_import_anchor + why_import, 1)
+
+          result_anchor = '''                  {lastChoiceImpact?.metricDeltas && fairTakeaway(lastChoiceImpact.metricDeltas) && (\n                    <p className="text-[11px] text-emerald-300/90 mb-4 border-l-2 border-emerald-500/50 pl-3">\n                      FAIR: {fairTakeaway(lastChoiceImpact.metricDeltas)}\n                    </p>\n                  )}\n'''
+          why_block = result_anchor + '''                  <WhyDidThisChange />\n'''
+          if '<WhyDidThisChange />' not in text:
+              if result_anchor not in text:
+                  raise SystemExit('chat result anchor missing')
+              text = text.replace(result_anchor, why_block, 1)
+          chat.write_text(text)
+
+          globe = Path('src/app/ScenarioGlobe.tsx')
+          text = globe.read_text()
+          selector_anchor = '  const tailSelection = useImpactInteractionStore((s) => s.tailSelection);\n'
+          selector = '  const cameraReplayToken = useImpactInteractionStore((s) => s.cameraReplayToken);\n'
+          if selector not in text:
+              if selector_anchor not in text:
+                  raise SystemExit('globe selector anchor missing')
+              text = text.replace(selector_anchor, selector_anchor + selector, 1)
+
+          ref_anchor = '  const lastCameraScenarioRef = useRef<string | null>(null);\n'
+          replay_ref = '  const lastCameraReplayTokenRef = useRef(0);\n'
+          if replay_ref not in text:
+              if ref_anchor not in text:
+                  raise SystemExit('globe ref anchor missing')
+              text = text.replace(ref_anchor, ref_anchor + replay_ref, 1)
+
+          changed_anchor = '    const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;\n    if (scenarioChanged) {\n'
+          changed_replacement = '''    const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;\n    const replayRequested = lastCameraReplayTokenRef.current !== cameraReplayToken;\n    if (scenarioChanged || replayRequested) {\n'''
+          if 'const replayRequested = lastCameraReplayTokenRef.current' not in text:
+              if changed_anchor not in text:
+                  raise SystemExit('globe changed anchor missing')
+              text = text.replace(changed_anchor, changed_replacement, 1)
+
+          camera_anchor = '    if (scenarioChanged) {\n      lastCameraScenarioRef.current = scenario.id;\n'
+          camera_replacement = '''    if (scenarioChanged || replayRequested) {\n      lastCameraScenarioRef.current = scenario.id;\n      lastCameraReplayTokenRef.current = cameraReplayToken;\n'''
+          if camera_anchor in text:
+              text = text.replace(camera_anchor, camera_replacement, 1)
+          elif 'lastCameraReplayTokenRef.current = cameraReplayToken;' not in text:
+              raise SystemExit('globe camera anchor missing')
+
+          dependency_anchor = '''  }, [\n    ready,\n    activeTailSelection,\n'''
+          dependency_replacement = '''  }, [\n    ready,\n    activeTailSelection,\n    cameraReplayToken,\n'''
+          if '    cameraReplayToken,\n' not in text:
+              if dependency_anchor not in text:
+                  raise SystemExit('globe dependency anchor missing')
+              text = text.replace(dependency_anchor, dependency_replacement, 1)
+          globe.write_text(text)
+          PY
+      - run: npm ci
+      - run: npx prettier --write src/app/BoardMode.tsx src/app/GuidedScenarioMode.tsx src/app/WhyDidThisChange.tsx src/app/Layout.tsx src/app/ChatPanel.tsx src/app/MetricsDashboard.tsx src/app/ScenarioGlobe.tsx src/model/impactAnalysis.ts src/model/impactAnalysis.test.ts src/store/interactionStore.ts
+      - run: npx eslint src/app/BoardMode.tsx src/app/GuidedScenarioMode.tsx src/app/WhyDidThisChange.tsx src/app/Layout.tsx src/app/ChatPanel.tsx src/app/MetricsDashboard.tsx src/app/ScenarioGlobe.tsx src/model/impactAnalysis.ts src/model/impactAnalysis.test.ts src/store/interactionStore.ts --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+      - run: npm test -- --run
+      - run: npm run build
+      - name: Commit feature wiring
+        run: |
+          git config user.name "jtflack-grc"
+          git config user.email "202126308+jtflack-grc@users.noreply.github.com"
+          git add src/app src/model src/store/interactionStore.ts
+          git commit -m "Wire causal board and guided modes [cbg-patched]"
+          git push origin feat/causal-board-guided
