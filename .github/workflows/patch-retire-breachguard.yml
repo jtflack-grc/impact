@@ -1,0 +1,96 @@
+name: Patch and verify Decision Desk framing
+
+on:
+  push:
+    branches:
+      - refactor/retire-breachguard
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[decision-desk-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/retire-breachguard
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Retire BreachGuard framing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/app/ChatPanel.tsx')
+          text = p.read_text()
+
+          replacements = [
+            ('interface MessageBubble {', 'interface BriefingEntry {'),
+            ('const TYPING_INTERVAL_MS = 4;   // Very fast, snappy response', 'const REVEAL_INTERVAL_MS = 4; // Fast progressive briefing reveal'),
+            ('const CHARS_PER_TICK = 2;       // Multiple chars per tick for speed', 'const CHARS_PER_REVEAL = 2;'),
+            ('const PAUSE_BETWEEN_MESSAGES_MS = 40;', 'const PAUSE_BETWEEN_BRIEFING_LINES_MS = 40;'),
+            ('const [messageBubbles, setMessageBubbles] = useState<MessageBubble[]>([]);', 'const [briefingEntries, setBriefingEntries] = useState<BriefingEntry[]>([]);'),
+            ('const [currentMessageIndex, setCurrentMessageIndex] = useState(0);', 'const [currentBriefingIndex, setCurrentBriefingIndex] = useState(0);'),
+            ('const [isTyping, setIsTyping] = useState(false);', 'const [isRevealing, setIsRevealing] = useState(false);'),
+            ('setMessageBubbles([]);', 'setBriefingEntries([]);'),
+            ('setCurrentMessageIndex(0);', 'setCurrentBriefingIndex(0);'),
+            ('setIsTyping(false);', 'setIsRevealing(false);'),
+            ('const initialBubbles: MessageBubble[] = messages.map((msg, idx) => ({', 'const initialEntries: BriefingEntry[] = messages.map((msg, idx) => ({'),
+            ('setMessageBubbles(initialBubbles);', 'setBriefingEntries(initialEntries);'),
+            ('setIsTyping(true);', 'setIsRevealing(true);'),
+            ('setCurrentMessageIndex(msgIdx + 1);', 'setCurrentBriefingIndex(msgIdx + 1);'),
+            ('pauseUntil = Date.now() + PAUSE_BETWEEN_MESSAGES_MS;', 'pauseUntil = Date.now() + PAUSE_BETWEEN_BRIEFING_LINES_MS;'),
+            ('const advance = Math.min(CHARS_PER_TICK, currentText.length - charIdx);', 'const advance = Math.min(CHARS_PER_REVEAL, currentText.length - charIdx);'),
+            ('setMessageBubbles((prev) => {', 'setBriefingEntries((prev) => {'),
+            ('}, TYPING_INTERVAL_MS);', '}, REVEAL_INTERVAL_MS);'),
+            ('      {/* Assistant header */}\n      <div className="px-5 pt-5 pb-3 border-b border-war-border/60">\n        <div className="inline-flex items-center gap-3 rounded-full bg-black/60 border border-war-border/70 px-3 py-1 shadow-sm">\n          <div\n            className={`h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(45,212,191,0.8)] ${\n              isTyping ? "animate-pulse" : ""\n            }`}\n          />\n          <div className="text-xs font-medium tracking-[0.18em] uppercase text-war-muted">\n            BreachGuard LLM\n          </div>\n          <span className="text-[10px] text-war-muted/80">\n            IT Security Assistant · v1 {isTyping ? "· composing" : ""}\n          </span>\n        </div>', '      {/* Decision Desk header */}\n      <div className="px-5 pt-5 pb-3 border-b border-war-border/60">\n        <div className="flex items-end justify-between gap-3">\n          <div>\n            <div className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">\n              Decision desk\n            </div>\n            <div className="mt-1 text-xs font-semibold tracking-wide text-war-white">\n              Scenario briefing\n            </div>\n          </div>\n          <div className="font-mono text-[9px] uppercase tracking-[0.14em] text-war-muted">\n            {isRevealing ? "Briefing in progress" : "Briefing ready"}\n          </div>\n        </div>'),
+            ('        {/* LLM Message bubbles — only show messages up to current (strict order) */}\n        <div className="space-y-3">\n          {messageBubbles.map((bubble, idx) => {\n            if (idx > currentMessageIndex) return null;\n            const displayedText = bubble.text.slice(0, bubble.displayedLength);\n            const isCurrentlyTyping = idx === currentMessageIndex && isTyping && !bubble.isComplete;\n            return (\n              <div\n                key={bubble.id}\n                className="rounded-xl bg-black/60 border border-war-border/70 px-4 py-3"\n              >\n                <div className="flex items-start gap-2 mb-1">\n                  <div className="h-2 w-2 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0" />\n                  <div className="flex-1">\n                    <div className="text-[10px] text-war-muted mb-1">BreachGuard LLM</div>\n                    <p className="text-sm text-war-white/90 leading-relaxed">\n                      {displayedText}\n                      {isCurrentlyTyping && (\n                        <span className="inline-block w-2 h-4 ml-1 bg-emerald-400 animate-pulse" />\n                      )}\n                    </p>\n                  </div>\n                </div>\n              </div>\n            );\n          })}\n        </div>', '        {/* Briefing feed — reveal entries in authored order */}\n        <div className="space-y-3">\n          {briefingEntries.map((entry, idx) => {\n            if (idx > currentBriefingIndex) return null;\n            const displayedText = entry.text.slice(0, entry.displayedLength);\n            const isCurrentlyRevealing =\n              idx === currentBriefingIndex && isRevealing && !entry.isComplete;\n            return (\n              <div\n                key={entry.id}\n                className="border-l-2 border-slate-600/70 bg-black/45 px-4 py-3"\n              >\n                <div className="text-[9px] uppercase tracking-[0.18em] text-war-muted">\n                  Briefing note {String(idx + 1).padStart(2, "0")}\n                </div>\n                <p className="mt-1 text-sm text-war-white/90 leading-relaxed">\n                  {displayedText}\n                  {isCurrentlyRevealing && (\n                    <span className="inline-block w-1.5 h-3.5 ml-1 bg-slate-400/80 animate-pulse" />\n                  )}\n                </p>\n              </div>\n            );\n          })}\n        </div>'),
+          ]
+
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'ChatPanel anchor not found: {old[:100]}')
+              text = text.replace(old, new, 1)
+
+          # Remaining mechanical references caused by repeated state updates.
+          text = text.replace('setIsTyping(false)', 'setIsRevealing(false)')
+          p.write_text(text)
+
+          p = Path('src/content/securityScenarios.ts')
+          text = p.read_text()
+          old = '"As BreachGuard LLM, I need to highlight a critical inheritance problem here: these mappings bypass IBM i object-level security.",'
+          new = '"The critical inheritance problem is that these mappings bypass IBM i object-level security.",'
+          if old not in text:
+              raise SystemExit('security scenario BreachGuard anchor not found')
+          p.write_text(text.replace(old, new, 1))
+
+          p = Path('src/content/schema.ts')
+          text = p.read_text()
+          old = '/** Array of messages that BreachGuard LLM will type out sequentially */'
+          new = '/** Array of briefing lines revealed sequentially in the Decision Desk. */'
+          if old not in text:
+              raise SystemExit('schema BreachGuard anchor not found')
+          p.write_text(text.replace(old, new, 1))
+          PY
+      - run: npm ci
+      - run: npx prettier --write src/app/ChatPanel.tsx src/content/securityScenarios.ts src/content/schema.ts
+      - run: npx eslint src/app/ChatPanel.tsx src/content/securityScenarios.ts src/content/schema.ts --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+      - run: npm test -- --run
+      - run: npm run build
+      - name: Confirm BreachGuard framing is gone
+        run: |
+          if grep -RniE 'BreachGuard|IT Security Assistant|Assistant header|LLM Message' src README.md DESIGN.md index.html; then
+            echo 'Legacy BreachGuard framing remains' >&2
+            exit 1
+          fi
+      - name: Commit Decision Desk framing
+        run: |
+          git config user.name "jtflack-grc"
+          git config user.email "202126308+jtflack-grc@users.noreply.github.com"
+          git add src/app/ChatPanel.tsx src/content/securityScenarios.ts src/content/schema.ts
+          git commit -m "Retire BreachGuard in favor of Decision Desk [decision-desk-patched]"
+          git push origin refactor/retire-breachguard
