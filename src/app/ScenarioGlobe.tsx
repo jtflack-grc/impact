@@ -217,15 +217,14 @@ export function ScenarioGlobe() {
       }
     }
 
-    // Treat the Earth itself as the subject. The third rail is tall and narrow,
-    // so a regional camera still crops the sphere even at several thousand km.
-    // This straight-on orbital framing leaves margin around the full globe while
-    // keeping the active scenario hemisphere facing the viewer.
+    // Keep the active hemisphere centered, but let Earth dominate the visual rail.
+    // About 10,500 km gives the globe the near-full-frame presence of the target
+    // composition without returning to the cropped regional flyover look.
     viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(
         scenario.longitude,
         scenario.latitude,
-        22_000_000
+        10_500_000
       ),
       orientation: {
         heading: Cesium.Math.toRadians(0),
