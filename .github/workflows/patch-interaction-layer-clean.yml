@@ -1,0 +1,146 @@
+name: Patch Impact interaction layer cleanly
+
+on:
+  push:
+    branches:
+      - feat/impact-interaction-layer-clean
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/impact-interaction-layer-clean
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Wire linked focus, semantic magnitude, and camera choreography
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/app/MetricsDashboard.tsx")
+          text = path.read_text()
+          if 'type ImpactLinkedFocus' not in text:
+              text = text.replace(
+                  'import { useScenarioStore } from "../store/scenarioStore";\n',
+                  'import { useScenarioStore } from "../store/scenarioStore";\nimport { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";\n',
+                  1,
+              )
+          for label, key in [
+              ("Gross loss P90", "grossP90"),
+              ("Net loss P90", "netP90"),
+              ("Mean loss & frequency", "frequency"),
+          ]:
+              marker = f'              label="{label}"\n'
+              replacement = marker + f'              focusKey="{key}"\n'
+              if replacement not in text:
+                  text = text.replace(marker, replacement, 1)
+          if 'focusKey?: ImpactLinkedFocus;' not in text:
+              text = text.replace(
+                  '  wide?: boolean;\n  fraction?: number;\n',
+                  '  wide?: boolean;\n  focusKey?: ImpactLinkedFocus;\n  fraction?: number;\n',
+                  1,
+              )
+          old_signature = 'function MetricCard({ label, valueLabel, description, tone, wide, fraction, infoTitle, infoBody, infoBadge }: MetricCardProps) {\n  const { bar, dot } = toneClasses(tone);\n  const clamped = fraction === undefined ? 0.75 : Math.max(0, Math.min(1, fraction));\n'
+          new_signature = '''function MetricCard({ label, valueLabel, description, tone, wide, focusKey, fraction, infoTitle, infoBody, infoBadge }: MetricCardProps) {\n  const { bar, dot } = toneClasses(tone);\n  const clamped = fraction === undefined ? 0.75 : Math.max(0, Math.min(1, fraction));\n  const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);\n  const setLinkedFocus = useImpactInteractionStore((s) => s.setLinkedFocus);\n  const clearLinkedFocus = useImpactInteractionStore((s) => s.clearLinkedFocus);\n  const isLinked = Boolean(focusKey && linkedFocus === focusKey);\n'''
+          if old_signature in text:
+              text = text.replace(old_signature, new_signature, 1)
+          old_article = '''    <article\n      className={`rounded-xl border border-war-border/80 bg-black/60 px-4 py-3 shadow-sm ${\n        wide ? "sm:col-span-2" : ""\n      }`}\n    >'''
+          new_article = '''    <article\n      tabIndex={focusKey ? 0 : undefined}\n      onMouseEnter={() => focusKey && setLinkedFocus(focusKey)}\n      onMouseLeave={() => focusKey && clearLinkedFocus()}\n      onFocus={() => focusKey && setLinkedFocus(focusKey)}\n      onBlur={() => focusKey && clearLinkedFocus()}\n      className={`rounded-xl border bg-black/60 px-4 py-3 shadow-sm transition-[border-color,background-color,box-shadow] duration-150 ${\n        wide ? "sm:col-span-2" : ""\n      } ${\n        isLinked ? "border-red-400/80 bg-red-950/20 ring-1 ring-red-400/35" : "border-war-border/80"\n      }`}\n    >'''
+          if old_article in text:
+              text = text.replace(old_article, new_article, 1)
+          path.write_text(text)
+
+          path = Path("src/app/ChatPanel.tsx")
+          text = path.read_text()
+          if 'type ImpactLinkedFocus' not in text:
+              text = text.replace(
+                  'import { useScenarioStore } from "../store/scenarioStore";\n',
+                  'import { useScenarioStore } from "../store/scenarioStore";\nimport { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";\n',
+                  1,
+              )
+          if 'const LINKED_FOCUS_COPY' not in text:
+              insert_after = 'const PAUSE_BETWEEN_MESSAGES_MS = 40;\n'
+              focus_copy = '''\nconst LINKED_FOCUS_COPY: Record<Exclude<ImpactLinkedFocus, null>, { label: string; body: string }> = {\n  grossP90: {\n    label: "Gross P90",\n    body: "A conservative single-event loss boundary before insurance and recovery. The globe expands with materiality relative to company revenue.",\n  },\n  netP90: {\n    label: "Net P90",\n    body: "Residual loss after modeled controls, insurance, and recovery. Compare it with Gross P90 to see how much risk transfer and mitigation are buying.",\n  },\n  frequency: {\n    label: "Loss event frequency",\n    body: "How often a loss event is expected. In this model, control adoption changes vulnerability and therefore the annualized event rate.",\n  },\n  controlAdoption: {\n    label: "Control adoption",\n    body: "A FAIR-linked resistance-strength proxy. Higher adoption reduces modeled vulnerability and loss event frequency.",\n  },\n  incidentRate: {\n    label: "Threat event frequency",\n    body: "A FAIR-linked frequency signal. Lower threat event frequency reduces the modeled rate at which loss events materialize.",\n  },\n};\n'''
+              text = text.replace(insert_after, insert_after + focus_copy, 1)
+          if 'const linkedFocus = useImpactInteractionStore' not in text:
+              text = text.replace(
+                  '  const resetSimulation = useScenarioStore((s) => s.resetSimulation);\n',
+                  '  const resetSimulation = useScenarioStore((s) => s.resetSimulation);\n  const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);\n',
+                  1,
+              )
+          linked_panel = '''\n        {linkedFocus && (\n          <div className="rounded-lg border border-red-400/40 bg-red-950/15 px-4 py-3">\n            <div className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">Linked model focus</div>\n            <div className="mt-1 text-xs font-semibold text-war-white">{LINKED_FOCUS_COPY[linkedFocus].label}</div>\n            <p className="mt-1 text-[11px] leading-relaxed text-war-muted">{LINKED_FOCUS_COPY[linkedFocus].body}</p>\n          </div>\n        )}\n'''
+          marker = '        {/* LLM Message bubbles — only show messages up to current (strict order) */}\n'
+          if 'Linked model focus' not in text:
+              text = text.replace(marker, linked_panel + '\n' + marker, 1)
+          path.write_text(text)
+
+          path = Path("src/app/ScenarioGlobe.tsx")
+          text = path.read_text()
+          if 'useImpactInteractionStore' not in text:
+              text = text.replace(
+                  'import { useScenarioStore } from "../store/scenarioStore";\n',
+                  'import { useScenarioStore } from "../store/scenarioStore";\nimport { useImpactInteractionStore } from "../store/interactionStore";\n',
+                  1,
+              )
+          if 'const lastChoiceImpact = useScenarioStore' not in text:
+              text = text.replace(
+                  '  const scenario = useScenarioStore((s) => s.scenarios[s.currentScenarioIndex]);\n',
+                  '  const scenario = useScenarioStore((s) => s.scenarios[s.currentScenarioIndex]);\n  const lastChoiceImpact = useScenarioStore((s) => s.lastChoiceImpact);\n  const showResults = useScenarioStore((s) => s.showResults);\n  const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);\n',
+                  1,
+              )
+          if 'lastCameraScenarioRef' not in text:
+              text = text.replace(
+                  '  const clickHandlerRef = useRef<any>(null);\n',
+                  '  const clickHandlerRef = useRef<any>(null);\n  const lastCameraScenarioRef = useRef<string | null>(null);\n',
+                  1,
+              )
+          old_start = '''    setShowPopup(true);\n    viewer.entities.removeAll();\n\n    const riskRed = Cesium.Color.fromCssColorString("#ef4444");\n    const pulseRadius = new Cesium.CallbackProperty(() => {\n      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;\n      return 52_000 + pulse * 42_000;\n    }, false);\n    const pulseFill = new Cesium.CallbackProperty(() => {\n      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;\n      return riskRed.withAlpha(0.12 + pulse * 0.16);\n    }, false);\n    const pulseOutline = new Cesium.CallbackProperty(() => {\n      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;\n      return riskRed.withAlpha(0.72 + pulse * 0.28);\n    }, false);\n'''
+          new_start = '''    const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;\n    if (scenarioChanged) setShowPopup(true);\n    viewer.entities.removeAll();\n\n    const lossShare = scenario.company.annualRevenueMillions > 0\n      ? scenario.lossProfile.grossP90Millions / scenario.company.annualRevenueMillions\n      : 0;\n    const magnitudeScale = 0.9 + Math.min(0.8, Math.max(0, lossShare * 3.5));\n    const focusScale = linkedFocus === "grossP90" ? 1.45 : linkedFocus === "netP90" ? 1.28 : linkedFocus === "frequency" ? 1.18 : 1;\n    const choiceMagnitude = lastChoiceImpact\n      ? Object.values(lastChoiceImpact.metricDeltas).reduce((total, delta) => total + Math.abs(delta ?? 0), 0) / 100\n      : 0;\n    const choiceScale = showResults ? 1 + Math.min(0.45, choiceMagnitude * 0.9) : 1;\n    const beaconScale = magnitudeScale * focusScale * choiceScale;\n    const pulseDivisor = Math.max(135, 240 / Math.min(1.75, beaconScale));\n    const ringPeriod = Math.max(1350, 2600 / Math.min(1.65, beaconScale));\n\n    const riskRed = Cesium.Color.fromCssColorString("#ef4444");\n    const pulseRadius = new Cesium.CallbackProperty(() => {\n      const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;\n      return (52_000 + pulse * 42_000) * beaconScale;\n    }, false);\n    const pulseFill = new Cesium.CallbackProperty(() => {\n      const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;\n      const energy = Math.min(0.12, Math.max(0, beaconScale - 1) * 0.08);\n      return riskRed.withAlpha(Math.min(0.42, 0.12 + pulse * 0.16 + energy));\n    }, false);\n    const pulseOutline = new Cesium.CallbackProperty(() => {\n      const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;\n      return riskRed.withAlpha(Math.min(1, 0.72 + pulse * 0.28));\n    }, false);\n'''
+          if old_start in text:
+              text = text.replace(old_start, new_start, 1)
+          text = text.replace(
+              '          const pulse = (Math.sin(Date.now() / 220) + 1) / 2;\n          return 14 + pulse * 9;\n',
+              '          const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;\n          return (14 + pulse * 9) * Math.min(1.35, Math.sqrt(beaconScale));\n',
+              1,
+          )
+          text = text.replace(
+              '        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;\n        return 90_000 + phase * 410_000;\n',
+              '        const phase = (((Date.now() / ringPeriod + phaseOffset) % 1) + 1) % 1;\n        return (90_000 + phase * 410_000) * beaconScale;\n',
+              1,
+          )
+          text = text.replace('Date.now() / 2400 + phaseOffset', 'Date.now() / ringPeriod + phaseOffset', 2)
+          text = text.replace(
+              '? Cesium.Color.fromCssColorString("#ef4444").withAlpha(0.22)\n',
+              '? Cesium.Color.fromCssColorString("#ef4444").withAlpha(Math.min(0.38, 0.18 + beaconScale * 0.08))\n',
+              1,
+          )
+          old_camera = '''    // Keep the active hemisphere centered, but let Earth dominate the visual rail.\n    // About 10,500 km gives the globe the near-full-frame presence of the target\n    // composition without returning to the cropped regional flyover look.\n    viewer.camera.flyTo({\n      destination: Cesium.Cartesian3.fromDegrees(\n        scenario.longitude,\n        scenario.latitude,\n        10_500_000\n      ),\n      orientation: {\n        heading: Cesium.Math.toRadians(0),\n        pitch: Cesium.Math.toRadians(-90),\n        roll: 0,\n      },\n      duration: 1.6,\n    });\n'''
+          new_camera = '''    if (scenarioChanged) {\n      lastCameraScenarioRef.current = scenario.id;\n      const arrivalHeading = scenario.index % 2 === 0 ? 9 : -9;\n      viewer.camera.flyTo({\n        destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 9_100_000),\n        orientation: {\n          heading: Cesium.Math.toRadians(arrivalHeading),\n          pitch: Cesium.Math.toRadians(-82),\n          roll: 0,\n        },\n        duration: 0.95,\n        complete: () => {\n          if (viewer.isDestroyed() || lastCameraScenarioRef.current !== scenario.id) return;\n          viewer.camera.flyTo({\n            destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 10_500_000),\n            orientation: {\n              heading: Cesium.Math.toRadians(0),\n              pitch: Cesium.Math.toRadians(-90),\n              roll: 0,\n            },\n            duration: 0.75,\n          });\n        },\n      });\n    }\n'''
+          if old_camera in text:
+              text = text.replace(old_camera, new_camera, 1)
+          old_deps = '''  }, [\n    ready,\n    scenario.countryCode,\n    scenario.countryName,\n    scenario.latitude,\n    scenario.longitude,\n    scenario.company.name,\n  ]);'''
+          new_deps = '''  }, [\n    ready,\n    linkedFocus,\n    lastChoiceImpact,\n    showResults,\n    scenario.id,\n    scenario.index,\n    scenario.countryCode,\n    scenario.countryName,\n    scenario.latitude,\n    scenario.longitude,\n    scenario.company.name,\n    scenario.company.annualRevenueMillions,\n    scenario.lossProfile.grossP90Millions,\n  ]);'''
+          if old_deps in text:
+              text = text.replace(old_deps, new_deps, 1)
+          path.write_text(text)
+          PY
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run build
+      - name: Commit interaction layer
+        run: |
+          if git diff --quiet -- src/app/MetricsDashboard.tsx src/app/ChatPanel.tsx src/app/ScenarioGlobe.tsx src/store/interactionStore.ts; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/MetricsDashboard.tsx src/app/ChatPanel.tsx src/app/ScenarioGlobe.tsx src/store/interactionStore.ts
+          git commit -m "Link Impact rails through model focus and magnitude"
+          git push origin HEAD:feat/impact-interaction-layer-clean
