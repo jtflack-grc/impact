@@ -55,7 +55,7 @@ export interface ScenarioChoice {
 export interface ScenarioStep {
   id: string;
   title: string;
-  /** Array of messages that BreachGuard LLM will type out sequentially */
+  /** Array of briefing lines revealed sequentially in the Decision Desk. */
   messages: string[];
   prompt?: string;
   choices?: ScenarioChoice[];

@@ -75,7 +75,7 @@ export const SECURITY_SCENARIOS: SecurityScenario[] = [
         title: "Shadow file shares into the core",
         messages: [
           "You're running IBM i 7.4, and you have several Windows shares mapped directly to the root of the Integrated File System (IFS).",
-          "As BreachGuard LLM, I need to highlight a critical inheritance problem here: these mappings bypass IBM i object-level security.",
+          "The critical inheritance problem is that these mappings bypass IBM i object-level security.",
           "When Windows users access \\\\ibmi-server\\ifs-root, they're hitting the IFS with the authority of the QSYS user profile that owns the SMB service—often QSYS or a service account with *ALLOBJ special authority.",
           "A ransomware crew has already landed in your Windows domain and is probing these mapped drives. They're looking for writable directories in the IFS that could let them drop encryption payloads or pivot into QSYS libraries.",
           "The IFS root mapping means they don't need to understand IBM i object authority—they just need write access to any folder in that share.",
