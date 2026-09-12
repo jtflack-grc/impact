@@ -1,6 +1,7 @@
 import { useMemo, useState, lazy, Suspense } from "react";
 import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useScenarioStore } from "../store/scenarioStore";
+import { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";
 import { EduTooltip } from "./EduTooltip";
 import { DeepFinanceMode } from "./DeepFinanceMode/DeepFinanceMode";
 import { useStore } from "../store";
@@ -267,6 +268,7 @@ export function MetricsDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <MetricCard
               label="Gross loss P90"
+              focusKey="grossP90"
               valueLabel={formatMillions(dynamicLossProfile.grossP90)}
               tone="red"
               description="90th percentile single‑scenario loss before insurance and recovery spend."
@@ -277,6 +279,7 @@ export function MetricsDashboard() {
             />
             <MetricCard
               label="Net loss P90"
+              focusKey="netP90"
               valueLabel={formatMillions(dynamicLossProfile.netP90)}
               tone="green"
               description="Estimated residual loss to the firm after modeled insurance and buffers."
@@ -287,6 +290,7 @@ export function MetricsDashboard() {
             />
             <MetricCard
               label="Mean loss & frequency"
+              focusKey="frequency"
               valueLabel={`${formatMillions(
                 dynamicLossProfile.meanLoss
               )} · ${dynamicLossProfile.frequency.toFixed(1)}/yr`}
@@ -805,6 +809,7 @@ interface MetricCardProps {
   description: string;
   tone: "green" | "amber" | "red" | "blue" | "slate" | "orange";
   wide?: boolean;
+  focusKey?: ImpactLinkedFocus;
   fraction?: number;
   /** Optional educational tooltip for this metric */
   infoTitle?: string;
@@ -832,13 +837,24 @@ function toneClasses(tone: MetricCardProps["tone"]) {
   }
 }
 
-function MetricCard({ label, valueLabel, description, tone, wide, fraction, infoTitle, infoBody, infoBadge }: MetricCardProps) {
+function MetricCard({ label, valueLabel, description, tone, wide, focusKey, fraction, infoTitle, infoBody, infoBadge }: MetricCardProps) {
   const { bar, dot } = toneClasses(tone);
   const clamped = fraction === undefined ? 0.75 : Math.max(0, Math.min(1, fraction));
+  const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
+  const setLinkedFocus = useImpactInteractionStore((s) => s.setLinkedFocus);
+  const clearLinkedFocus = useImpactInteractionStore((s) => s.clearLinkedFocus);
+  const isLinked = Boolean(focusKey && linkedFocus === focusKey);
   return (
     <article
-      className={`rounded-xl border border-war-border/80 bg-black/60 px-4 py-3 shadow-sm ${
+      tabIndex={focusKey ? 0 : undefined}
+      onMouseEnter={() => focusKey && setLinkedFocus(focusKey)}
+      onMouseLeave={() => focusKey && clearLinkedFocus()}
+      onFocus={() => focusKey && setLinkedFocus(focusKey)}
+      onBlur={() => focusKey && clearLinkedFocus()}
+      className={`rounded-xl border bg-black/60 px-4 py-3 shadow-sm transition-[border-color,background-color,box-shadow] duration-150 ${
         wide ? "sm:col-span-2" : ""
+      } ${
+        isLinked ? "border-red-400/80 bg-red-950/20 ring-1 ring-red-400/35" : "border-war-border/80"
       }`}
     >
       <div className="flex items-center justify-between gap-2 mb-2">
