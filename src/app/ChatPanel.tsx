@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ScenarioMetricKey } from "../content/schema";
 import { useScenarioStore } from "../store/scenarioStore";
+import { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";
 
 const METRIC_LABELS: Record<ScenarioMetricKey, string> = {
   controlAdoption: "Control adoption",
@@ -43,6 +44,29 @@ const TYPING_INTERVAL_MS = 4;   // Very fast, snappy response
 const CHARS_PER_TICK = 2;       // Multiple chars per tick for speed
 const PAUSE_BETWEEN_MESSAGES_MS = 40;
 
+const LINKED_FOCUS_COPY: Record<Exclude<ImpactLinkedFocus, null>, { label: string; body: string }> = {
+  grossP90: {
+    label: "Gross P90",
+    body: "A conservative single-event loss boundary before insurance and recovery. The globe expands with materiality relative to company revenue.",
+  },
+  netP90: {
+    label: "Net P90",
+    body: "Residual loss after modeled controls, insurance, and recovery. Compare it with Gross P90 to see how much risk transfer and mitigation are buying.",
+  },
+  frequency: {
+    label: "Loss event frequency",
+    body: "How often a loss event is expected. In this model, control adoption changes vulnerability and therefore the annualized event rate.",
+  },
+  controlAdoption: {
+    label: "Control adoption",
+    body: "A FAIR-linked resistance-strength proxy. Higher adoption reduces modeled vulnerability and loss event frequency.",
+  },
+  incidentRate: {
+    label: "Threat event frequency",
+    body: "A FAIR-linked frequency signal. Lower threat event frequency reduces the modeled rate at which loss events materialize.",
+  },
+};
+
 export function ChatPanel() {
   const scenarios = useScenarioStore((s) => s.scenarios);
   const currentScenarioIndex = useScenarioStore((s) => s.currentScenarioIndex);
@@ -56,6 +80,7 @@ export function ChatPanel() {
   const restart = useScenarioStore((s) => s.restartCurrent);
   const simulationComplete = useScenarioStore((s) => s.simulationComplete);
   const resetSimulation = useScenarioStore((s) => s.resetSimulation);
+  const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
 
   const scenario = scenarios[currentScenarioIndex];
   const step = scenario.steps[currentStepIndex];
@@ -249,6 +274,15 @@ export function ChatPanel() {
             with an EBITDA margin around {scenario.company.ebitdaMarginPercent}%.
           </p>
         </div>
+
+
+        {linkedFocus && (
+          <div className="rounded-lg border border-red-400/40 bg-red-950/15 px-4 py-3">
+            <div className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">Linked model focus</div>
+            <div className="mt-1 text-xs font-semibold text-war-white">{LINKED_FOCUS_COPY[linkedFocus].label}</div>
+            <p className="mt-1 text-[11px] leading-relaxed text-war-muted">{LINKED_FOCUS_COPY[linkedFocus].body}</p>
+          </div>
+        )}
 
         {/* LLM Message bubbles — only show messages up to current (strict order) */}
         <div className="space-y-3">

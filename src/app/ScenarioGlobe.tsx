@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useScenarioStore } from "../store/scenarioStore";
+import { useImpactInteractionStore } from "../store/interactionStore";
 
 declare global {
   interface Window {
@@ -43,10 +44,14 @@ function getEntityCountryName(entity: any): string {
 
 export function ScenarioGlobe() {
   const scenario = useScenarioStore((s) => s.scenarios[s.currentScenarioIndex]);
+  const lastChoiceImpact = useScenarioStore((s) => s.lastChoiceImpact);
+  const showResults = useScenarioStore((s) => s.showResults);
+  const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<any>(null);
   const countrySourceRef = useRef<any>(null);
   const clickHandlerRef = useRef<any>(null);
+  const lastCameraScenarioRef = useRef<string | null>(null);
   const [showPopup, setShowPopup] = useState(true);
   const [ready, setReady] = useState(false);
   const [terrainState, setTerrainState] = useState<
@@ -173,21 +178,36 @@ export function ScenarioGlobe() {
     const viewer = viewerRef.current;
     if (!Cesium || !viewer || viewer.isDestroyed()) return;
 
-    setShowPopup(true);
+    const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;
+    if (scenarioChanged) setShowPopup(true);
     viewer.entities.removeAll();
+
+    const lossShare = scenario.company.annualRevenueMillions > 0
+      ? scenario.lossProfile.grossP90Millions / scenario.company.annualRevenueMillions
+      : 0;
+    const magnitudeScale = 0.9 + Math.min(0.8, Math.max(0, lossShare * 3.5));
+    const focusScale = linkedFocus === "grossP90" ? 1.45 : linkedFocus === "netP90" ? 1.28 : linkedFocus === "frequency" ? 1.18 : 1;
+    const choiceMagnitude = lastChoiceImpact
+      ? Object.values(lastChoiceImpact.metricDeltas).reduce((total, delta) => total + Math.abs(delta ?? 0), 0) / 100
+      : 0;
+    const choiceScale = showResults ? 1 + Math.min(0.45, choiceMagnitude * 0.9) : 1;
+    const beaconScale = magnitudeScale * focusScale * choiceScale;
+    const pulseDivisor = Math.max(135, 240 / Math.min(1.75, beaconScale));
+    const ringPeriod = Math.max(1350, 2600 / Math.min(1.65, beaconScale));
 
     const riskRed = Cesium.Color.fromCssColorString("#ef4444");
     const pulseRadius = new Cesium.CallbackProperty(() => {
-      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
-      return 52_000 + pulse * 42_000;
+      const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;
+      return (52_000 + pulse * 42_000) * beaconScale;
     }, false);
     const pulseFill = new Cesium.CallbackProperty(() => {
-      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
-      return riskRed.withAlpha(0.12 + pulse * 0.16);
+      const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;
+      const energy = Math.min(0.12, Math.max(0, beaconScale - 1) * 0.08);
+      return riskRed.withAlpha(Math.min(0.42, 0.12 + pulse * 0.16 + energy));
     }, false);
     const pulseOutline = new Cesium.CallbackProperty(() => {
-      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
-      return riskRed.withAlpha(0.72 + pulse * 0.28);
+      const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;
+      return riskRed.withAlpha(Math.min(1, 0.72 + pulse * 0.28));
     }, false);
 
     const hq = viewer.entities.add({
@@ -198,8 +218,8 @@ export function ScenarioGlobe() {
       ),
       point: {
         pixelSize: new Cesium.CallbackProperty(() => {
-          const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
-          return 14 + pulse * 9;
+          const pulse = (Math.sin(Date.now() / pulseDivisor) + 1) / 2;
+          return (14 + pulse * 9) * Math.min(1.35, Math.sqrt(beaconScale));
         }, false),
         color: riskRed,
         outlineColor: Cesium.Color.fromCssColorString("#fee2e2"),
@@ -233,15 +253,15 @@ export function ScenarioGlobe() {
 
     for (const phaseOffset of [0, 1 / 3, 2 / 3]) {
       const radius = new Cesium.CallbackProperty(() => {
-        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
-        return 90_000 + phase * 410_000;
+        const phase = (((Date.now() / ringPeriod + phaseOffset) % 1) + 1) % 1;
+        return (90_000 + phase * 410_000) * beaconScale;
       }, false);
       const ringColor = new Cesium.CallbackProperty(() => {
-        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+        const phase = (((Date.now() / ringPeriod + phaseOffset) % 1) + 1) % 1;
         return riskRed.withAlpha(Math.max(0.04, 0.92 - phase * 0.88));
       }, false);
       const fillColor = new Cesium.CallbackProperty(() => {
-        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+        const phase = (((Date.now() / ringPeriod + phaseOffset) % 1) + 1) % 1;
         return riskRed.withAlpha(Math.max(0.008, 0.11 - phase * 0.1));
       }, false);
 
@@ -275,7 +295,7 @@ export function ScenarioGlobe() {
         entity.__impactScenarioCountry = selected;
         if (entity.polygon) {
           entity.polygon.material = selected
-            ? Cesium.Color.fromCssColorString("#ef4444").withAlpha(0.22)
+            ? Cesium.Color.fromCssColorString("#ef4444").withAlpha(Math.min(0.38, 0.18 + beaconScale * 0.08))
             : Cesium.Color.TRANSPARENT;
           entity.polygon.outline = selected;
           entity.polygon.outlineColor = selected
@@ -285,29 +305,45 @@ export function ScenarioGlobe() {
       }
     }
 
-    // Keep the active hemisphere centered, but let Earth dominate the visual rail.
-    // About 10,500 km gives the globe the near-full-frame presence of the target
-    // composition without returning to the cropped regional flyover look.
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(
-        scenario.longitude,
-        scenario.latitude,
-        10_500_000
-      ),
-      orientation: {
-        heading: Cesium.Math.toRadians(0),
-        pitch: Cesium.Math.toRadians(-90),
-        roll: 0,
-      },
-      duration: 1.6,
-    });
+    if (scenarioChanged) {
+      lastCameraScenarioRef.current = scenario.id;
+      const arrivalHeading = scenario.index % 2 === 0 ? 9 : -9;
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 9_100_000),
+        orientation: {
+          heading: Cesium.Math.toRadians(arrivalHeading),
+          pitch: Cesium.Math.toRadians(-82),
+          roll: 0,
+        },
+        duration: 0.95,
+        complete: () => {
+          if (viewer.isDestroyed() || lastCameraScenarioRef.current !== scenario.id) return;
+          viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 10_500_000),
+            orientation: {
+              heading: Cesium.Math.toRadians(0),
+              pitch: Cesium.Math.toRadians(-90),
+              roll: 0,
+            },
+            duration: 0.75,
+          });
+        },
+      });
+    }
   }, [
     ready,
+    linkedFocus,
+    lastChoiceImpact,
+    showResults,
+    scenario.id,
+    scenario.index,
     scenario.countryCode,
     scenario.countryName,
     scenario.latitude,
     scenario.longitude,
     scenario.company.name,
+    scenario.company.annualRevenueMillions,
+    scenario.lossProfile.grossP90Millions,
   ]);
 
   return (
