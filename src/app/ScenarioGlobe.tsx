@@ -119,23 +119,36 @@ export function ScenarioGlobe() {
       viewer.scene.screenSpaceCameraController.maximumZoomDistance = 30_000_000;
       viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
 
-      // ArcGIS World Imagery uses Web Mercator and stops short of the poles.
-      // A small neutral cap closes that projection gap without replacing streamed terrain.
-      const polarCaps = new Cesium.CustomDataSource("impact-polar-caps");
-      const polarCapMaterial = Cesium.Color.fromCssColorString("#7f9097").withAlpha(0.94);
-      const polarCapRadius = 575_000;
-      for (const latitude of [89.999, -89.999]) {
-        polarCaps.entities.add({
-          position: Cesium.Cartesian3.fromDegrees(0, latitude),
-          ellipse: {
-            semiMajorAxis: polarCapRadius,
-            semiMinorAxis: polarCapRadius,
-            material: polarCapMaterial,
-            height: 4_000,
+      // ArcGIS elevation is Web Mercator-based and does not provide terrain mesh at the poles.
+      // Keep a slightly shrunken WGS84 ellipsoid beneath streamed terrain so missing terrain
+      // geometry reveals a closed globe instead of empty space.
+      const wgs84 = Cesium.Ellipsoid.WGS84.radii;
+      const terrainUnderlayRadii = new Cesium.Cartesian3(
+        wgs84.x - 1_500,
+        wgs84.y - 1_500,
+        wgs84.z - 1_500
+      );
+      const terrainUnderlay = new Cesium.Primitive({
+        geometryInstances: new Cesium.GeometryInstance({
+          geometry: new Cesium.EllipsoidGeometry({
+            radii: terrainUnderlayRadii,
+            vertexFormat: Cesium.PerInstanceColorAppearance.VERTEX_FORMAT,
+          }),
+          attributes: {
+            color: Cesium.ColorGeometryInstanceAttribute.fromColor(
+              Cesium.Color.fromCssColorString("#24343c")
+            ),
           },
-        });
-      }
-      viewer.dataSources.add(polarCaps);
+        }),
+        appearance: new Cesium.PerInstanceColorAppearance({
+          flat: true,
+          translucent: false,
+          closed: true,
+        }),
+        asynchronous: false,
+        allowPicking: false,
+      });
+      viewer.scene.primitives.add(terrainUnderlay);
 
       try {
         const imageryProvider =
