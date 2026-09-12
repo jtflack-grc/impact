@@ -52,7 +52,8 @@ export function ScenarioGlobe() {
   const countrySourceRef = useRef<any>(null);
   const clickHandlerRef = useRef<any>(null);
   const lastCameraScenarioRef = useRef<string | null>(null);
-  const [showPopup, setShowPopup] = useState(true);
+  const popupTimerRef = useRef<number | null>(null);
+  const [showPopup, setShowPopup] = useState(false);
   const [ready, setReady] = useState(false);
   const [terrainState, setTerrainState] = useState<
     "loading" | "streaming" | "fallback" | "error"
@@ -167,6 +168,10 @@ export function ScenarioGlobe() {
       clickHandlerRef.current = null;
       countrySourceRef.current = null;
       viewerRef.current = null;
+      if (popupTimerRef.current !== null) {
+        window.clearTimeout(popupTimerRef.current);
+        popupTimerRef.current = null;
+      }
       if (viewer && !viewer.isDestroyed()) viewer.destroy();
     };
   }, []);
@@ -179,7 +184,13 @@ export function ScenarioGlobe() {
     if (!Cesium || !viewer || viewer.isDestroyed()) return;
 
     const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;
-    if (scenarioChanged) setShowPopup(true);
+    if (scenarioChanged) {
+      if (popupTimerRef.current !== null) {
+        window.clearTimeout(popupTimerRef.current);
+        popupTimerRef.current = null;
+      }
+      setShowPopup(false);
+    }
     viewer.entities.removeAll();
 
     const lossShare = scenario.company.annualRevenueMillions > 0
@@ -326,6 +337,15 @@ export function ScenarioGlobe() {
               roll: 0,
             },
             duration: 0.75,
+            complete: () => {
+              if (viewer.isDestroyed() || lastCameraScenarioRef.current !== scenario.id) return;
+              popupTimerRef.current = window.setTimeout(() => {
+                if (!viewer.isDestroyed() && lastCameraScenarioRef.current === scenario.id) {
+                  setShowPopup(true);
+                }
+                popupTimerRef.current = null;
+              }, 300);
+            },
           });
         },
       });
