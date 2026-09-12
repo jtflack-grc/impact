@@ -1,89 +1,82 @@
-/* Dark theme styling for Handsontable in FMVA spreadsheet */
+/* IMPACT financial worksheet: dense, legible, and intentionally spreadsheet-like. */
 .fmva-spreadsheet-wrapper .handsontable {
-  background-color: #0f172a !important; /* slate-900 */
-  color: #e2e8f0 !important; /* slate-200 */
+  background-color: #0d1115 !important;
+  color: #e6e9ec !important;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
 .fmva-spreadsheet-wrapper .handsontable th {
-  background-color: #1e293b !important; /* slate-800 */
-  color: #cbd5e1 !important; /* slate-300 */
-  border-color: #334155 !important; /* slate-700 */
-  font-weight: 600;
+  background-color: #151a20 !important;
+  color: #aeb6bf !important;
+  border-color: #2a3138 !important;
+  font-weight: 500;
   font-size: 11px;
 }
 
 .fmva-spreadsheet-wrapper .handsontable td {
-  background-color: #0f172a !important;
-  color: #e2e8f0 !important;
-  border-color: #334155 !important;
+  background-color: #0d1115 !important;
+  color: #e6e9ec !important;
+  border-color: #242b32 !important;
 }
 
 .fmva-spreadsheet-wrapper .handsontable td.htReadOnly {
-  background-color: #1e293b !important;
-  color: #94a3b8 !important; /* slate-400 */
-  font-style: italic;
+  background-color: #11161b !important;
+  color: #8b949e !important;
+  font-style: normal;
 }
 
 .fmva-spreadsheet-wrapper .handsontable .currentRow,
 .fmva-spreadsheet-wrapper .handsontable .currentCol {
-  background-color: #1e3a8a !important; /* blue-900 */
+  background-color: #18222a !important;
 }
 
 .fmva-spreadsheet-wrapper .handsontable .area {
-  background-color: rgba(30, 58, 138, 0.2) !important;
+  background-color: rgba(126, 164, 191, 0.12) !important;
+  border-color: #7ea4bf !important;
 }
 
 .fmva-spreadsheet-wrapper .handsontable .ht_clone_top th,
-.fmva-spreadsheet-wrapper .handsontable .ht_clone_left th {
-  background-color: #1e293b !important;
-  color: #cbd5e1 !important;
-}
-
+.fmva-spreadsheet-wrapper .handsontable .ht_clone_left th,
 .fmva-spreadsheet-wrapper .handsontable .ht_clone_top .htCore th,
 .fmva-spreadsheet-wrapper .handsontable .ht_clone_left .htCore th {
-  background-color: #1e293b !important;
+  background-color: #151a20 !important;
+  color: #aeb6bf !important;
 }
 
 .fmva-spreadsheet-wrapper .handsontable tbody tr:nth-child(even) td {
-  background-color: #0f172a !important;
+  background-color: #0f1317 !important;
 }
 
 .fmva-spreadsheet-wrapper .handsontable tbody tr:nth-child(odd) td {
-  background-color: #0a0f1a !important; /* slightly darker */
+  background-color: #0b0f12 !important;
 }
 
-.fmva-spreadsheet-wrapper .handsontable .wtHolder {
-  background-color: #0f172a !important;
-}
-
+.fmva-spreadsheet-wrapper .handsontable .wtHolder,
 .fmva-spreadsheet-wrapper .handsontable .ht_master .wtHolder {
-  background-color: #0f172a !important;
+  background-color: #0d1115 !important;
 }
 
-/* Formula cells styling */
 .fmva-spreadsheet-wrapper .handsontable td[data-formula] {
-  color: #60a5fa !important; /* sky-400 for formulas */
+  color: #8bb2cb !important;
 }
 
-/* Input cells */
 .fmva-spreadsheet-wrapper .handsontable td:not(.htReadOnly) {
-  color: #e2e8f0 !important;
+  color: #eef1f3 !important;
 }
 
-/* Formula column (3rd column) - muted, spreads with others */
 .fmva-spreadsheet-wrapper .handsontable th:nth-child(3),
 .fmva-spreadsheet-wrapper .handsontable td:nth-child(3) {
-  color: #64748b !important;
+  color: #737d87 !important;
   font-size: 11px;
 }
 
-/* Spread columns and row height - no row header so first column is Metric */
 .fmva-spreadsheet-wrapper .fmva-table-container {
   display: flex;
   flex-direction: column;
   min-height: 0;
   width: 100%;
-  overflow-x: auto; /* Allow horizontal scroll on mobile */
+  overflow-x: auto;
 }
 
 .fmva-spreadsheet-wrapper .fmva-table-container .handsontable,
@@ -96,40 +89,34 @@
 .fmva-spreadsheet-wrapper .handsontable .htCore {
   table-layout: fixed;
   width: 100% !important;
-  min-width: 600px; /* Ensure table doesn't get too narrow on mobile */
+  min-width: 600px;
 }
 
 .fmva-spreadsheet-wrapper .handsontable th,
 .fmva-spreadsheet-wrapper .handsontable td {
-  padding: 8px 14px !important;
+  padding: 8px 12px !important;
 }
 
 .fmva-spreadsheet-wrapper .handsontable tbody tr td {
-  min-height: 38px;
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
+  min-height: 36px;
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
 }
 
-/* Selection */
-.fmva-spreadsheet-wrapper .handsontable .area {
-  border-color: #3b82f6 !important; /* blue-500 */
-}
-
-/* Scrollbar */
 .fmva-spreadsheet-wrapper .handsontable .wtHolder ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 .fmva-spreadsheet-wrapper .handsontable .wtHolder ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: transparent;
 }
 
 .fmva-spreadsheet-wrapper .handsontable .wtHolder ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #343c45;
   border-radius: 4px;
 }
 
 .fmva-spreadsheet-wrapper .handsontable .wtHolder ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #47515b;
 }
