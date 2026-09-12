@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   deriveImpactAnalysis,
   formatImpactMillions,
@@ -89,6 +89,7 @@ export function GuidedScenarioMode() {
     (state) => state.clearLinkedFocus
   );
   const [playing, setPlaying] = useState(true);
+  const playingRef = useRef(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState(() =>
     typeof window === "undefined"
@@ -176,9 +177,14 @@ export function GuidedScenarioMode() {
 
   useEffect(() => {
     if (!guidedActive) return;
+    playingRef.current = true;
     setPlaying(true);
     setGuidedStep(0);
   }, [guidedActive, scenario.id, setGuidedStep]);
+
+  useEffect(() => {
+    playingRef.current = playing;
+  }, [playing]);
 
   useEffect(() => {
     if (!guidedActive) return;
@@ -190,17 +196,48 @@ export function GuidedScenarioMode() {
   useEffect(() => {
     if (!guidedActive || !guidedVoice || !("speechSynthesis" in window)) return;
     const synth = window.speechSynthesis;
+    let disposed = false;
+    let advanceTimer: number | null = null;
+
     synth.cancel();
+    synth.resume();
     const utterance = new SpeechSynthesisUtterance(
       `${current.title}. ${current.text}`
     );
     configureUtterance(utterance, selectedVoice);
+    utterance.onend = () => {
+      if (disposed || !playingRef.current || safeStep >= steps.length - 1)
+        return;
+      advanceTimer = window.setTimeout(() => {
+        if (!disposed && playingRef.current) setGuidedStep(safeStep + 1);
+      }, 650);
+    };
     synth.speak(utterance);
-    return () => synth.cancel();
-  }, [current, guidedActive, guidedVoice, selectedVoice]);
+
+    return () => {
+      disposed = true;
+      if (advanceTimer !== null) window.clearTimeout(advanceTimer);
+      synth.cancel();
+      synth.resume();
+    };
+  }, [
+    current,
+    guidedActive,
+    guidedVoice,
+    safeStep,
+    selectedVoice,
+    setGuidedStep,
+    steps.length,
+  ]);
 
   useEffect(() => {
-    if (!guidedActive || !playing || safeStep >= steps.length - 1) return;
+    if (
+      !guidedActive ||
+      guidedVoice ||
+      !playing ||
+      safeStep >= steps.length - 1
+    )
+      return;
     const duration = Math.max(4800, Math.min(9000, current.text.length * 36));
     const timer = window.setTimeout(
       () => setGuidedStep(safeStep + 1),
@@ -210,6 +247,7 @@ export function GuidedScenarioMode() {
   }, [
     current.text.length,
     guidedActive,
+    guidedVoice,
     playing,
     safeStep,
     setGuidedStep,
@@ -228,11 +266,22 @@ export function GuidedScenarioMode() {
     if (!("speechSynthesis" in window)) return;
     const synth = window.speechSynthesis;
     synth.cancel();
+    synth.resume();
     const utterance = new SpeechSynthesisUtterance(
       "Impact guided briefing. Quantified cyber risk, translated into business consequence."
     );
     configureUtterance(utterance, selectedVoice);
     synth.speak(utterance);
+  };
+
+  const togglePlayback = () => {
+    const nextPlaying = !playing;
+    playingRef.current = nextPlaying;
+    setPlaying(nextPlaying);
+    if (guidedVoice && "speechSynthesis" in window) {
+      if (nextPlaying) window.speechSynthesis.resume();
+      else window.speechSynthesis.pause();
+    }
   };
 
   const exit = () => {
@@ -327,7 +376,7 @@ export function GuidedScenarioMode() {
       <div className="flex items-center justify-between border-t border-war-border px-4 py-2">
         <button
           type="button"
-          onClick={() => setPlaying(!playing)}
+          onClick={togglePlayback}
           className="border border-war-border px-2 py-1 text-[10px] text-war-muted hover:text-war-white"
         >
           {playing ? "Pause" : "Play"}
