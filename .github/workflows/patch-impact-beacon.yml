@@ -1,0 +1,137 @@
+name: Patch Impact scenario beacon
+
+on:
+  push:
+    branches:
+      - feat/impact-scenario-beacon
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/impact-scenario-beacon
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Replace static HQ marker with active scenario beacon
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/app/ScenarioGlobe.tsx")
+          text = path.read_text()
+          if "for (const phaseOffset of [0, 1 / 3, 2 / 3])" in text:
+              raise SystemExit(0)
+
+          start_marker = "    const hq = viewer.entities.add({"
+          end_marker = "    hq.__impactHq = true;"
+          start = text.index(start_marker)
+          end = text.index(end_marker, start) + len(end_marker)
+
+          replacement = '''    const riskRed = Cesium.Color.fromCssColorString("#ef4444");
+          const pulseRadius = new Cesium.CallbackProperty(() => {
+            const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+            return 52_000 + pulse * 42_000;
+          }, false);
+          const pulseFill = new Cesium.CallbackProperty(() => {
+            const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+            return riskRed.withAlpha(0.12 + pulse * 0.16);
+          }, false);
+          const pulseOutline = new Cesium.CallbackProperty(() => {
+            const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+            return riskRed.withAlpha(0.72 + pulse * 0.28);
+          }, false);
+
+          const hq = viewer.entities.add({
+            position: Cesium.Cartesian3.fromDegrees(
+              scenario.longitude,
+              scenario.latitude,
+              1800
+            ),
+            point: {
+              pixelSize: new Cesium.CallbackProperty(() => {
+                const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+                return 14 + pulse * 9;
+              }, false),
+              color: riskRed,
+              outlineColor: Cesium.Color.fromCssColorString("#fee2e2"),
+              outlineWidth: 3,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            label: {
+              text: scenario.company.name,
+              font: "700 14px IBM Plex Sans, sans-serif",
+              fillColor: Cesium.Color.WHITE,
+              outlineColor: Cesium.Color.BLACK,
+              outlineWidth: 5,
+              style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+              pixelOffset: new Cesium.Cartesian2(0, -30),
+              verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+              heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+              disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            },
+            ellipse: {
+              semiMajorAxis: pulseRadius,
+              semiMinorAxis: pulseRadius,
+              material: new Cesium.ColorMaterialProperty(pulseFill),
+              outline: true,
+              outlineColor: pulseOutline,
+              height: 0,
+              heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            },
+          });
+          hq.__impactHq = true;
+
+          for (const phaseOffset of [0, 1 / 3, 2 / 3]) {
+            const radius = new Cesium.CallbackProperty(() => {
+              const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+              return 90_000 + phase * 410_000;
+            }, false);
+            const ringColor = new Cesium.CallbackProperty(() => {
+              const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+              return riskRed.withAlpha(Math.max(0.04, 0.92 - phase * 0.88));
+            }, false);
+            const fillColor = new Cesium.CallbackProperty(() => {
+              const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+              return riskRed.withAlpha(Math.max(0.008, 0.11 - phase * 0.1));
+            }, false);
+
+            const shockwave = viewer.entities.add({
+              position: Cesium.Cartesian3.fromDegrees(
+                scenario.longitude,
+                scenario.latitude
+              ),
+              ellipse: {
+                semiMajorAxis: radius,
+                semiMinorAxis: radius,
+                material: new Cesium.ColorMaterialProperty(fillColor),
+                outline: true,
+                outlineColor: ringColor,
+                height: 0,
+                heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+              },
+            });
+            shockwave.__impactHq = true;
+          }'''
+
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+      - run: npm ci
+      - run: npx prettier --write src/app/ScenarioGlobe.tsx
+      - name: Commit beacon treatment
+        run: |
+          if git diff --quiet -- src/app/ScenarioGlobe.tsx; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/ScenarioGlobe.tsx
+          git commit -m "Give Impact scenarios a red pulse beacon"
+          git push origin HEAD:feat/impact-scenario-beacon
