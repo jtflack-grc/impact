@@ -7,6 +7,7 @@ import { LossTailExplorer } from "./LossTailExplorer";
 import { DeepFinanceMode } from "./DeepFinanceMode/DeepFinanceMode";
 import { useStore } from "../store";
 import { dcfFromCashFlows } from "../model/dcf";
+import { deriveImpactAnalysis } from "../model/impactAnalysis";
 
 // Lazy load FMVA spreadsheet (heavy component with Handsontable)
 const FmvaSpreadsheet = lazy(() => import("./FmvaSpreadsheet").then(module => ({ default: module.FmvaSpreadsheet })));
@@ -70,31 +71,12 @@ export function MetricsDashboard() {
   const deepFinanceWacc = useStore((s) => s.deepFinanceWacc);
   const effectiveWacc = deepFinanceWacc ?? BASELINE_WACC;
 
-  // Derive dynamic loss values using proper FAIR relationships
-  // Loss Magnitude (P90, meanLoss) comes from base scenario (Monte Carlo simulation results)
-  // LEF is affected by Vulnerability, which is affected by Control Adoption
-  const dynamicLossProfile = useMemo(() => {
-    const base = scenario.lossProfile;
-    // FAIR: Vulnerability = function of Threat Capability vs Resistance Strength
-    // Simplified for learning: Vulnerability ≈ 1 - Control Adoption (higher adoption = lower vulnerability)
-    // FAIR: LEF = TEF × Vulnerability
-    // Model LEF scaling with Vulnerability: higher Control Adoption → lower Vulnerability → lower LEF
-    // Reference point: assume base scenario has ~50% Control Adoption (neutral point)
-    const baseControlAdoption = 50; // Reference point for base scenario
-    const vulnerabilityFactor = (100 - activeMetrics.controlAdoption) / (100 - baseControlAdoption);
-    const adjustedFrequency = base.frequencyPerYear * Math.max(0.3, Math.min(1.7, vulnerabilityFactor));
-    
-    return {
-      // Loss Magnitude values come from base scenario (Monte Carlo simulation results)
-      // Not scaled by non-FAIR metrics - maintaining FAIR rigor
-      grossP90: base.grossP90Millions,
-      netP90: base.netP90Millions,
-      meanLoss: base.meanLossMillions,
-      // LEF affected by Vulnerability (which is affected by Control Adoption)
-      // Higher Control Adoption → Lower Vulnerability → Lower LEF
-      frequency: Math.max(0.01, adjustedFrequency),
-    };
-  }, [scenario.lossProfile, activeMetrics.controlAdoption]);
+  // Shared FAIR teaching model: LEF = TEF × Vulnerability, scaled from the scenario baseline.
+  const impactAnalysis = useMemo(
+    () => deriveImpactAnalysis(scenario, activeMetrics),
+    [activeMetrics, scenario]
+  );
+  const dynamicLossProfile = impactAnalysis.loss;
 
 
   const revenueAtRiskData = useMemo(() => {
