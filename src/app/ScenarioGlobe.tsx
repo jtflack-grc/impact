@@ -12,8 +12,6 @@ declare global {
 
 const WORLD_GEOJSON_URL =
   "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
-const ARCGIS_TERRAIN_URL =
-  "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer";
 const ARCGIS_IMAGERY_URL =
   "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer";
 
@@ -59,8 +57,8 @@ export function ScenarioGlobe() {
   const popupTimerRef = useRef<number | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [ready, setReady] = useState(false);
-  const [terrainState, setTerrainState] = useState<
-    "loading" | "streaming" | "fallback" | "error"
+  const [globeState, setGlobeState] = useState<
+    "loading" | "global" | "error"
   >("loading");
 
   const activeTailSelection =
@@ -73,25 +71,14 @@ export function ScenarioGlobe() {
     const initialize = async () => {
       const Cesium = window.Cesium;
       if (!Cesium || !containerRef.current) {
-        setTerrainState("error");
+        setGlobeState("error");
         return;
       }
 
-      let terrainProvider: any;
-      try {
-        terrainProvider =
-          await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
-            ARCGIS_TERRAIN_URL
-          );
-        if (!disposed) setTerrainState("streaming");
-      } catch (error) {
-        console.warn(
-          "Cesium terrain unavailable; using ellipsoid fallback.",
-          error
-        );
-        terrainProvider = new Cesium.EllipsoidTerrainProvider();
-        if (!disposed) setTerrainState("fallback");
-      }
+      // Impact stays at a global analytical camera distance, where streamed elevation
+      // adds little visual value but Web Mercator terrain leaves polar geometry gaps.
+      // Use complete WGS84 geometry instead, then layer imagery for detail.
+      const terrainProvider = new Cesium.EllipsoidTerrainProvider();
 
       if (disposed || !containerRef.current) return;
 
@@ -119,36 +106,22 @@ export function ScenarioGlobe() {
       viewer.scene.screenSpaceCameraController.maximumZoomDistance = 30_000_000;
       viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
 
-      // ArcGIS elevation is Web Mercator-based and does not provide terrain mesh at the poles.
-      // Keep a slightly shrunken WGS84 ellipsoid beneath streamed terrain so missing terrain
-      // geometry reveals a closed globe instead of empty space.
-      const wgs84 = Cesium.Ellipsoid.WGS84.radii;
-      const terrainUnderlayRadii = new Cesium.Cartesian3(
-        wgs84.x - 1_500,
-        wgs84.y - 1_500,
-        wgs84.z - 1_500
-      );
-      const terrainUnderlay = new Cesium.Primitive({
-        geometryInstances: new Cesium.GeometryInstance({
-          geometry: new Cesium.EllipsoidGeometry({
-            radii: terrainUnderlayRadii,
-            vertexFormat: Cesium.PerInstanceColorAppearance.VERTEX_FORMAT,
-          }),
-          attributes: {
-            color: Cesium.ColorGeometryInstanceAttribute.fromColor(
-              Cesium.Color.fromCssColorString("#24343c")
-            ),
-          },
-        }),
-        appearance: new Cesium.PerInstanceColorAppearance({
-          flat: true,
-          translucent: false,
-          closed: true,
-        }),
-        asynchronous: false,
-        allowPicking: false,
-      });
-      viewer.scene.primitives.add(terrainUnderlay);
+      // Natural Earth II uses a geographic tiling scheme and covers the full globe.
+      // Keep it underneath ArcGIS imagery so only ArcGIS coverage gaps reveal it.
+      try {
+        const fallbackImagery = new Cesium.UrlTemplateImageryProvider({
+          url: `${Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII")}/{z}/{x}/{reverseY}.jpg`,
+          tilingScheme: new Cesium.GeographicTilingScheme(),
+          maximumLevel: 5,
+        });
+        const fallbackLayer =
+          viewer.imageryLayers.addImageryProvider(fallbackImagery);
+        fallbackLayer.brightness = 0.7;
+        fallbackLayer.contrast = 1.04;
+        fallbackLayer.saturation = 0.68;
+      } catch (error) {
+        console.warn("Natural Earth fallback imagery could not be loaded.", error);
+      }
 
       try {
         const imageryProvider =
@@ -193,6 +166,7 @@ export function ScenarioGlobe() {
       }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
       clickHandlerRef.current = handler;
 
+      if (!disposed) setGlobeState("global");
       setReady(true);
     };
 
@@ -416,10 +390,9 @@ export function ScenarioGlobe() {
       <div ref={containerRef} className="absolute inset-0" />
 
       <div className="absolute right-3 top-3 z-10 rounded border border-white/15 bg-black/65 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-slate-300 backdrop-blur">
-        {terrainState === "streaming" && "Cesium terrain · streamed"}
-        {terrainState === "loading" && "Cesium terrain · loading"}
-        {terrainState === "fallback" && "Cesium terrain · fallback"}
-        {terrainState === "error" && "Cesium · unavailable"}
+        {globeState === "global" && "Cesium globe · global"}
+        {globeState === "loading" && "Cesium globe · loading"}
+        {globeState === "error" && "Cesium · unavailable"}
       </div>
 
       {activeTailSelection && (
