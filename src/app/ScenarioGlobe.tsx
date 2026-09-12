@@ -119,6 +119,24 @@ export function ScenarioGlobe() {
       viewer.scene.screenSpaceCameraController.maximumZoomDistance = 30_000_000;
       viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
 
+      // ArcGIS World Imagery uses Web Mercator and stops short of the poles.
+      // A small neutral cap closes that projection gap without replacing streamed terrain.
+      const polarCaps = new Cesium.CustomDataSource("impact-polar-caps");
+      const polarCapMaterial = Cesium.Color.fromCssColorString("#7f9097").withAlpha(0.94);
+      const polarCapRadius = 575_000;
+      for (const latitude of [89.999, -89.999]) {
+        polarCaps.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(0, latitude),
+          ellipse: {
+            semiMajorAxis: polarCapRadius,
+            semiMinorAxis: polarCapRadius,
+            material: polarCapMaterial,
+            height: 4_000,
+          },
+        });
+      }
+      viewer.dataSources.add(polarCaps);
+
       try {
         const imageryProvider =
           await Cesium.ArcGisMapServerImageryProvider.fromUrl(
