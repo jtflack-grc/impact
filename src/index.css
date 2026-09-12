@@ -2,10 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Guarantee something is visible even if Tailwind or JS is slow/broken */
-html, body {
+:root {
+  color-scheme: dark;
+  --impact-bg: #07090b;
+  --impact-panel: #0a0d10;
+  --impact-surface: #0d1115;
+  --impact-surface-raised: #11161b;
+  --impact-line: #20262d;
+  --impact-line-strong: #303841;
+  --impact-text: #f2f5f7;
+  --impact-muted: #8b949e;
+  --impact-risk: #e35d5d;
+  --impact-finance: #53a97b;
+  --impact-info: #7ea4bf;
+  --impact-warning: #c89a55;
+}
+
+html,
+body {
   margin: 0;
   min-height: 100vh;
+  background: var(--impact-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -16,14 +33,322 @@ html, body {
 
 body {
   @apply bg-war-bg text-war-white antialiased font-sans font-normal;
+  background-color: var(--impact-bg);
+  color: var(--impact-text);
 }
 
-/* Fallback so content is never invisible */
-body {
-  background-color: #000000;
-  color: #ffffff;
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-h1, h2, h3 {
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #93b4ca;
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
   @apply font-medium tracking-tight;
+}
+
+::selection {
+  background: rgba(126, 164, 191, 0.35);
+  color: var(--impact-text);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #343c45 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #343c45;
+  border-radius: 4px;
+}
+
+/* Product shell */
+.impact-shell {
+  background: var(--impact-bg);
+}
+
+.impact-topbar {
+  background: rgba(7, 9, 11, 0.98);
+}
+
+.scenario-rail,
+.analysis-rail {
+  background: var(--impact-panel);
+}
+
+.analysis-rail {
+  font-variant-numeric: tabular-nums;
+}
+
+.globe-rail {
+  background: #000;
+}
+
+/* Remove decorative AI-dashboard effects. The globe owns the visual drama. */
+.scenario-rail [class*="bg-gradient-to-b"],
+.scenario-rail [class*="bg-gradient-to-br"],
+.analysis-rail [class*="bg-gradient-to-b"],
+.analysis-rail [class*="bg-gradient-to-br"],
+.globe-rail [class*="bg-gradient-to-b"],
+.globe-rail [class*="bg-gradient-to-br"] {
+  background-image: none !important;
+}
+
+.scenario-rail [class*="shadow"],
+.analysis-rail [class*="shadow"],
+.globe-rail [class*="shadow"] {
+  box-shadow: none !important;
+}
+
+.scenario-rail .rounded-xl,
+.analysis-rail .rounded-xl,
+.globe-rail .rounded-xl,
+.globe-rail .rounded-2xl {
+  border-radius: 6px !important;
+}
+
+.scenario-rail .rounded-lg,
+.analysis-rail .rounded-lg,
+.globe-rail .rounded-lg {
+  border-radius: 4px !important;
+}
+
+.scenario-rail .border-2,
+.analysis-rail .border-2,
+.globe-rail .border-2 {
+  border-width: 1px !important;
+}
+
+/* Keep small metadata readable instead of shrinking it into decoration. */
+.scenario-rail [class*="text-[9px]"],
+.analysis-rail [class*="text-[9px]"],
+.globe-rail [class*="text-[9px]"] {
+  font-size: 0.66rem !important;
+}
+
+.scenario-rail [class*="text-[10px]"],
+.analysis-rail [class*="text-[10px]"],
+.globe-rail [class*="text-[10px]"] {
+  font-size: 0.7rem !important;
+}
+
+.scenario-rail [class*="text-[11px]"],
+.analysis-rail [class*="text-[11px]"],
+.globe-rail [class*="text-[11px]"] {
+  font-size: 0.74rem !important;
+}
+
+.scenario-rail [class*="tracking-[0."],
+.analysis-rail [class*="tracking-[0."],
+.globe-rail [class*="tracking-[0."] {
+  letter-spacing: 0.08em !important;
+}
+
+/* Scenario rail: quiet operator console, not a chat-app clone. */
+.scenario-rail > div > div:first-child {
+  background: var(--impact-panel);
+}
+
+.scenario-rail .inline-flex.rounded-full {
+  border-radius: 4px !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.scenario-rail .animate-pulse {
+  animation: none !important;
+}
+
+.scenario-rail button.group {
+  background: var(--impact-surface-raised) !important;
+  border: 1px solid var(--impact-line-strong) !important;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease !important;
+}
+
+.scenario-rail button.group:hover {
+  background: #151b21 !important;
+  border-color: #59636e !important;
+}
+
+.scenario-rail button.group > div > span:first-child {
+  border-radius: 3px !important;
+  background: #171d23 !important;
+  color: #a7b0b9 !important;
+}
+
+.scenario-rail [class*="bg-black/60"],
+.scenario-rail [class*="bg-black/40"],
+.scenario-rail [class*="bg-slate-800"],
+.scenario-rail [class*="bg-slate-900"] {
+  background-color: var(--impact-surface) !important;
+}
+
+.scenario-rail button[class*="bg-emerald-500"] {
+  background-color: #2d7d59 !important;
+  color: #fff !important;
+}
+
+.scenario-rail button[class*="bg-emerald-500"]:hover {
+  background-color: #348e66 !important;
+}
+
+.scenario-rail a {
+  text-underline-offset: 3px;
+}
+
+/* Analysis rail: use tabs, spacing and numbers for hierarchy instead of card chrome. */
+.analysis-rail > div > div:first-child {
+  background: var(--impact-panel);
+  padding-top: 1rem !important;
+  padding-bottom: 0.7rem !important;
+}
+
+.analysis-rail [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.15rem !important;
+  margin-top: 0.65rem;
+  border-bottom: 1px solid var(--impact-line);
+}
+
+.analysis-rail [role="tab"] {
+  min-height: 36px !important;
+  padding: 0.55rem 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--impact-muted) !important;
+  box-shadow: none !important;
+}
+
+.analysis-rail [role="tab"][aria-selected="true"] {
+  color: var(--impact-text) !important;
+  box-shadow: inset 0 -2px 0 #d8dde2 !important;
+}
+
+.analysis-rail [role="tab"]:hover {
+  color: var(--impact-text) !important;
+  background: transparent !important;
+}
+
+.analysis-rail [class*="bg-black/60"],
+.analysis-rail [class*="bg-black/40"],
+.analysis-rail [class*="bg-slate-800"],
+.analysis-rail [class*="bg-slate-900"] {
+  background-color: var(--impact-surface) !important;
+}
+
+.analysis-rail article {
+  background: var(--impact-surface) !important;
+  border-color: var(--impact-line) !important;
+  border-radius: 5px !important;
+  padding: 0.9rem 1rem !important;
+}
+
+.analysis-rail article > div:first-child > span:last-child {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.03em;
+}
+
+.analysis-rail [class*="rounded-xl"][class*="border-war-border"] {
+  border-color: var(--impact-line) !important;
+}
+
+.analysis-rail .recharts-cartesian-grid line {
+  stroke: #20262d !important;
+  stroke-dasharray: none !important;
+}
+
+.analysis-rail .recharts-text {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+}
+
+/* Let status colors carry meaning without turning the UI neon. */
+.text-emerald-400,
+.text-emerald-300 {
+  color: #67b58a !important;
+}
+
+.text-red-400,
+.text-red-300 {
+  color: #e67878 !important;
+}
+
+.text-sky-400,
+.text-sky-300 {
+  color: #8bb2cb !important;
+}
+
+.text-amber-400,
+.text-amber-300 {
+  color: #d0a668 !important;
+}
+
+/* Globe chrome should disappear behind the actual Earth. */
+.globe-rail [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+
+.globe-rail > div > div[class*="right-3"] {
+  border-radius: 3px !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(5, 7, 9, 0.78) !important;
+  color: #aab2bb !important;
+}
+
+.globe-rail [role="dialog"],
+.globe-rail .rounded-2xl {
+  background: rgba(10, 13, 16, 0.96) !important;
+  border-color: #303841 !important;
+  backdrop-filter: none !important;
+}
+
+/* First-run and credits dialogs use the same restrained system. */
+body > div [role="dialog"] > div {
+  border-radius: 7px !important;
+  border-width: 1px !important;
+  border-color: var(--impact-line-strong) !important;
+  background: #0d1115 !important;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.42) !important;
+}
+
+body > div [role="dialog"] [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
