@@ -69,7 +69,8 @@ export function WhyDidThisChange() {
   useEffect(() => {
     setOpen(false);
     setSelectedMetric(null);
-  }, [scenario.id, lastChoiceImpact?.label]);
+    clearLinkedFocus();
+  }, [clearLinkedFocus, scenario.id, lastChoiceImpact?.label]);
 
   useEffect(() => () => clearLinkedFocus(), [clearLinkedFocus]);
 
