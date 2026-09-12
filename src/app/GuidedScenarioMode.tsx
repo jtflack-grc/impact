@@ -110,33 +110,33 @@ export function GuidedScenarioMode() {
       {
         kicker: "Situation",
         title: scenario.title,
-        text: `${scenario.company.name} is a ${scenario.company.sector.toLowerCase()} organization in ${scenario.company.region}. This scenario centers on ${scenario.lossProfile.topDriver}.`,
+        text: `Here’s the setup. ${scenario.company.name} is a ${scenario.company.sector.toLowerCase()} organization in ${scenario.company.region}, and this scenario is really about ${scenario.lossProfile.topDriver}. We’re not trying to predict one exact breach here. We’re asking what this kind of event could mean to the business if the bad day lands toward the upper end of the loss range.`,
         focus: null,
       },
       {
         kicker: "Exposure",
         title: `Gross P90 ${formatImpactMillions(gross)}`,
-        text: `The conservative single-event loss boundary is ${formatImpactMillions(gross)}, about ${analysis.grossP90RevenuePercent.toFixed(1)} percent of annual revenue and ${analysis.grossP90EbitdaPercent.toFixed(0)} percent of annual EBITDA.`,
+        text: `Start with the gross exposure. Before we give controls, insurance, or recovery much credit, the P90 loss is ${formatImpactMillions(gross)}. That’s about ${analysis.grossP90RevenuePercent.toFixed(1)} percent of annual revenue and ${analysis.grossP90EbitdaPercent.toFixed(0)} percent of annual EBITDA. At that level, this wouldn’t just be a security problem. It’d be a business performance problem.`,
         focus: "grossP90",
       },
       {
         kicker: "Residual",
         title: `Net P90 ${formatImpactMillions(net)}`,
-        text: `After modeled controls, recovery, and risk transfer, the residual P90 is ${formatImpactMillions(net)}. That is a ${reduction.toFixed(0)} percent reduction from gross exposure.`,
+        text: `Now let’s give the organization credit for what can actually absorb the hit. After modeled controls, recovery, and risk transfer, Net P90 falls to ${formatImpactMillions(net)}, a ${reduction.toFixed(0)} percent reduction from gross. That’s meaningful, but it doesn’t make the risk disappear. This is the tail exposure leadership still has to be comfortable carrying.`,
         focus: "netP90",
       },
       {
         kicker: "Frequency",
         title: `LEF ${analysis.loss.frequency.toFixed(2)} per year`,
-        text: `The teaching model combines a threat-event-frequency factor of ${analysis.tefFactor.toFixed(2)} times baseline with a vulnerability proxy of ${(analysis.vulnerabilityProxy * 100).toFixed(0)} percent. That produces a loss-event frequency of ${analysis.loss.frequency.toFixed(2)} per year and expected annual loss of ${formatImpactMillions(analysis.expectedAnnualLossMillions)}.`,
+        text: `Severity is only half the story. We also care about how often a loss event actually gets through. Right now, the model has threat-event frequency at ${analysis.tefFactor.toFixed(2)} times baseline and vulnerability at ${(analysis.vulnerabilityProxy * 100).toFixed(0)} percent. Together, that puts loss-event frequency at ${analysis.loss.frequency.toFixed(2)} per year and expected annual loss at ${formatImpactMillions(analysis.expectedAnnualLossMillions)}. EAL isn’t a forecasted bill. It’s a way to compare the long-run economic weight of the risk.`,
         focus: "frequency",
       },
       {
         kicker: "Decision",
         title: step.title,
         text: step.prompt
-          ? `${step.prompt} The model is now yours: compare the choices, make the decision, and then inspect why the numbers moved.`
-          : "Review the available decision paths, make the next choice, and then inspect why the numbers moved.",
+          ? `We’ve framed the exposure, so now we get to the part that actually matters: what would you do? ${step.prompt} There isn’t a magic security-wins answer here. You’re trading cost, resilience, risk transfer, and retained exposure. Pick a path, and we’ll show you exactly why the model moved.`
+          : "We’ve framed the exposure, so now the model is yours. Compare the available decision paths and think about the tradeoffs between cost, resilience, risk transfer, and retained exposure. Pick a path, and we’ll show you exactly why the model moved.",
         focus: null,
       },
     ];

@@ -54,7 +54,9 @@ function BriefSection({
         {label}
       </div>
       <div className="mt-1 text-sm font-semibold text-war-white">{title}</div>
-      <div className="mt-2 text-xs leading-relaxed text-war-muted">{children}</div>
+      <div className="mt-2 text-xs leading-relaxed text-war-muted">
+        {children}
+      </div>
     </div>
   );
 }
@@ -125,9 +127,9 @@ export function BoardMode() {
             </div>
             <p className="mt-2 text-base leading-relaxed text-war-white">
               {scenario.company.name} is carrying a modeled gross P90 cyber loss
-              of {formatImpactMillions(analysis.loss.grossP90)}. Current controls,
-              recovery, and risk transfer reduce that to a residual P90 of{" "}
-              {formatImpactMillions(analysis.loss.netP90)}, or{" "}
+              of {formatImpactMillions(analysis.loss.grossP90)}. Current
+              controls, recovery, and risk transfer reduce that to a residual
+              P90 of {formatImpactMillions(analysis.loss.netP90)}, or{" "}
               {residualEbitdaPercent.toFixed(0)}% of annual EBITDA.
             </p>
             <p className="mt-3 text-xs leading-relaxed text-war-muted">
@@ -145,7 +147,9 @@ export function BoardMode() {
               Decision status
             </div>
             <div className="mt-2 text-lg font-semibold text-war-white">
-              {lastChoiceImpact ? "Management action selected" : "Decision pending"}
+              {lastChoiceImpact
+                ? "Management action selected"
+                : "Decision pending"}
             </div>
             <div className="mt-3 border-t border-war-border pt-3 text-[10px] leading-relaxed text-war-muted">
               {lastChoiceImpact
@@ -181,7 +185,8 @@ export function BoardMode() {
             </div>
             <div className="hidden text-right font-mono text-[9px] text-war-muted sm:block">
               EBITDA {formatImpactMillions(analysis.ebitdaMillions)}
-              <br />Revenue {formatImpactMillions(analysis.revenueMillions)}
+              <br />
+              Revenue {formatImpactMillions(analysis.revenueMillions)}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -219,14 +224,15 @@ export function BoardMode() {
                 {lastChoiceImpact.summary ??
                   "The latest simulated management action has been applied to the current risk posture."}
                 <div className="mt-3 border-t border-war-border pt-3 font-mono text-[10px] text-war-muted">
-                  Control adoption {activeMetrics.controlAdoption}% · Modeled risk
-                  reduction {riskReduction.toFixed(0)}%
+                  Control adoption {activeMetrics.controlAdoption}% · Modeled
+                  risk reduction {riskReduction.toFixed(0)}%
                 </div>
               </>
             ) : (
               <>
-                Management has not yet selected a simulated response. The figures
-                above represent the current baseline for this decision point.
+                Management has not yet selected a simulated response. The
+                figures above represent the current baseline for this decision
+                point.
                 <div className="mt-3 border-t border-war-border pt-3 font-mono text-[10px] text-war-muted">
                   Control adoption {activeMetrics.controlAdoption}% · Primary
                   driver {scenario.lossProfile.topDriver}
@@ -242,9 +248,9 @@ export function BoardMode() {
             Modeled mitigation removes {riskReduction.toFixed(0)}% of gross P90,
             but the remaining tail exposure is still equal to{" "}
             {residualEbitdaPercent.toFixed(0)}% of annual EBITDA. That retained
-            exposure is the governance question: whether to accept it, spend more
-            to reduce it, transfer more of it, or ask management for additional
-            evidence before deciding.
+            exposure is the governance question: whether to accept it, spend
+            more to reduce it, transfer more of it, or ask management for
+            additional evidence before deciding.
           </BriefSection>
         </div>
 
