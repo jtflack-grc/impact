@@ -17,10 +17,18 @@ const ARCGIS_IMAGERY_URL =
 
 const COUNTRY_ALIASES: Record<string, string[]> = {
   US: ["United States of America", "United States", "USA"],
-  GB: ["United Kingdom", "UK", "United Kingdom of Great Britain and Northern Ireland"],
+  GB: [
+    "United Kingdom",
+    "UK",
+    "United Kingdom of Great Britain and Northern Ireland",
+  ],
 };
 
-function isScenarioCountryName(name: string, code: string, canonicalName: string): boolean {
+function isScenarioCountryName(
+  name: string,
+  code: string,
+  canonicalName: string
+): boolean {
   const aliases = COUNTRY_ALIASES[code] ?? [canonicalName];
   return aliases.some(
     (alias) => alias === name || name.includes(alias) || alias.includes(name)
@@ -41,7 +49,9 @@ export function ScenarioGlobe() {
   const clickHandlerRef = useRef<any>(null);
   const [showPopup, setShowPopup] = useState(true);
   const [ready, setReady] = useState(false);
-  const [terrainState, setTerrainState] = useState<"loading" | "streaming" | "fallback" | "error">("loading");
+  const [terrainState, setTerrainState] = useState<
+    "loading" | "streaming" | "fallback" | "error"
+  >("loading");
 
   useEffect(() => {
     let disposed = false;
@@ -56,12 +66,16 @@ export function ScenarioGlobe() {
 
       let terrainProvider: any;
       try {
-        terrainProvider = await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
-          ARCGIS_TERRAIN_URL
-        );
+        terrainProvider =
+          await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
+            ARCGIS_TERRAIN_URL
+          );
         if (!disposed) setTerrainState("streaming");
       } catch (error) {
-        console.warn("Cesium terrain unavailable; using ellipsoid fallback.", error);
+        console.warn(
+          "Cesium terrain unavailable; using ellipsoid fallback.",
+          error
+        );
         terrainProvider = new Cesium.EllipsoidTerrainProvider();
         if (!disposed) setTerrainState("fallback");
       }
@@ -93,11 +107,13 @@ export function ScenarioGlobe() {
       viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
 
       try {
-        const imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
-          ARCGIS_IMAGERY_URL
-        );
+        const imageryProvider =
+          await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+            ARCGIS_IMAGERY_URL
+          );
         if (!disposed && viewer && !viewer.isDestroyed()) {
-          const layer = viewer.imageryLayers.addImageryProvider(imageryProvider);
+          const layer =
+            viewer.imageryLayers.addImageryProvider(imageryProvider);
           layer.brightness = 0.78;
           layer.contrast = 1.08;
           layer.saturation = 0.78;
@@ -107,9 +123,12 @@ export function ScenarioGlobe() {
       }
 
       try {
-        const countries = await Cesium.GeoJsonDataSource.load(WORLD_GEOJSON_URL, {
-          clampToGround: true,
-        });
+        const countries = await Cesium.GeoJsonDataSource.load(
+          WORLD_GEOJSON_URL,
+          {
+            clampToGround: true,
+          }
+        );
         if (!disposed && viewer && !viewer.isDestroyed()) {
           viewer.dataSources.add(countries);
           countrySourceRef.current = countries;
@@ -157,43 +176,92 @@ export function ScenarioGlobe() {
     setShowPopup(true);
     viewer.entities.removeAll();
 
+    const riskRed = Cesium.Color.fromCssColorString("#ef4444");
+    const pulseRadius = new Cesium.CallbackProperty(() => {
+      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+      return 52_000 + pulse * 42_000;
+    }, false);
+    const pulseFill = new Cesium.CallbackProperty(() => {
+      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+      return riskRed.withAlpha(0.12 + pulse * 0.16);
+    }, false);
+    const pulseOutline = new Cesium.CallbackProperty(() => {
+      const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+      return riskRed.withAlpha(0.72 + pulse * 0.28);
+    }, false);
+
     const hq = viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(
         scenario.longitude,
         scenario.latitude,
-        1200
+        1800
       ),
       point: {
-        pixelSize: 11,
-        color: Cesium.Color.fromCssColorString("#7dd3fc"),
-        outlineColor: Cesium.Color.WHITE,
-        outlineWidth: 2,
+        pixelSize: new Cesium.CallbackProperty(() => {
+          const pulse = (Math.sin(Date.now() / 220) + 1) / 2;
+          return 14 + pulse * 9;
+        }, false),
+        color: riskRed,
+        outlineColor: Cesium.Color.fromCssColorString("#fee2e2"),
+        outlineWidth: 3,
         heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
       label: {
         text: scenario.company.name,
-        font: "600 13px IBM Plex Sans, sans-serif",
+        font: "700 14px IBM Plex Sans, sans-serif",
         fillColor: Cesium.Color.WHITE,
         outlineColor: Cesium.Color.BLACK,
-        outlineWidth: 4,
+        outlineWidth: 5,
         style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        pixelOffset: new Cesium.Cartesian2(0, -24),
+        pixelOffset: new Cesium.Cartesian2(0, -30),
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
         heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
       ellipse: {
-        semiMajorAxis: 32_000,
-        semiMinorAxis: 32_000,
-        material: Cesium.Color.fromCssColorString("#38bdf8").withAlpha(0.16),
+        semiMajorAxis: pulseRadius,
+        semiMinorAxis: pulseRadius,
+        material: new Cesium.ColorMaterialProperty(pulseFill),
         outline: true,
-        outlineColor: Cesium.Color.fromCssColorString("#7dd3fc").withAlpha(0.8),
+        outlineColor: pulseOutline,
         height: 0,
         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
       },
     });
     hq.__impactHq = true;
+
+    for (const phaseOffset of [0, 1 / 3, 2 / 3]) {
+      const radius = new Cesium.CallbackProperty(() => {
+        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+        return 90_000 + phase * 410_000;
+      }, false);
+      const ringColor = new Cesium.CallbackProperty(() => {
+        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+        return riskRed.withAlpha(Math.max(0.04, 0.92 - phase * 0.88));
+      }, false);
+      const fillColor = new Cesium.CallbackProperty(() => {
+        const phase = (((Date.now() / 2400 + phaseOffset) % 1) + 1) % 1;
+        return riskRed.withAlpha(Math.max(0.008, 0.11 - phase * 0.1));
+      }, false);
+
+      const shockwave = viewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(
+          scenario.longitude,
+          scenario.latitude
+        ),
+        ellipse: {
+          semiMajorAxis: radius,
+          semiMinorAxis: radius,
+          material: new Cesium.ColorMaterialProperty(fillColor),
+          outline: true,
+          outlineColor: ringColor,
+          height: 0,
+          heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        },
+      });
+      shockwave.__impactHq = true;
+    }
 
     const countrySource = countrySourceRef.current;
     if (countrySource) {
@@ -263,7 +331,9 @@ export function ScenarioGlobe() {
               <div className="text-xl font-bold text-war-white mb-1">
                 {scenario.company.name}
               </div>
-              <p className="text-xs text-war-muted">{scenario.company.sector}</p>
+              <p className="text-xs text-war-muted">
+                {scenario.company.sector}
+              </p>
             </div>
             <button
               type="button"
@@ -271,65 +341,120 @@ export function ScenarioGlobe() {
               className="text-war-muted hover:text-war-white transition-colors p-1"
               aria-label="Close"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>
 
           <div className="space-y-4 text-xs">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-war-muted mb-2">Company Overview</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-war-muted mb-2">
+                Company Overview
+              </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <div className="text-war-muted text-[10px] mb-0.5">Headquarters</div>
-                  <div className="text-war-white font-medium">{scenario.company.headquarters}</div>
+                  <div className="text-war-muted text-[10px] mb-0.5">
+                    Headquarters
+                  </div>
+                  <div className="text-war-white font-medium">
+                    {scenario.company.headquarters}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-war-muted text-[10px] mb-0.5">Employees</div>
-                  <div className="text-war-white font-medium">{scenario.company.employeeCount.toLocaleString()}</div>
+                  <div className="text-war-muted text-[10px] mb-0.5">
+                    Employees
+                  </div>
+                  <div className="text-war-white font-medium">
+                    {scenario.company.employeeCount.toLocaleString()}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-war-muted text-[10px] mb-0.5">Founded</div>
-                  <div className="text-war-white font-medium">{scenario.company.foundedYear}</div>
+                  <div className="text-war-muted text-[10px] mb-0.5">
+                    Founded
+                  </div>
+                  <div className="text-war-white font-medium">
+                    {scenario.company.foundedYear}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-war-muted text-[10px] mb-0.5">Sector</div>
-                  <div className="text-war-white font-medium">{scenario.company.sector}</div>
+                  <div className="text-war-muted text-[10px] mb-0.5">
+                    Sector
+                  </div>
+                  <div className="text-war-white font-medium">
+                    {scenario.company.sector}
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="pt-3 border-t border-war-border/30">
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-war-muted mb-3">Financial Summary (10-K Style)</h3>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-war-muted mb-3">
+                Financial Summary (10-K Style)
+              </h3>
               <div className="space-y-2">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-lg bg-black/40 p-2 border border-war-border/30">
-                    <div className="text-war-muted text-[10px] mb-1">Annual Revenue</div>
-                    <div className="text-lg font-bold text-war-white">${scenario.company.annualRevenueMillions.toLocaleString()}M</div>
+                    <div className="text-war-muted text-[10px] mb-1">
+                      Annual Revenue
+                    </div>
+                    <div className="text-lg font-bold text-war-white">
+                      ${scenario.company.annualRevenueMillions.toLocaleString()}
+                      M
+                    </div>
                   </div>
                   <div className="rounded-lg bg-black/40 p-2 border border-war-border/30">
-                    <div className="text-war-muted text-[10px] mb-1">EBITDA Margin</div>
-                    <div className="text-lg font-bold text-emerald-400">{scenario.company.ebitdaMarginPercent}%</div>
+                    <div className="text-war-muted text-[10px] mb-1">
+                      EBITDA Margin
+                    </div>
+                    <div className="text-lg font-bold text-emerald-400">
+                      {scenario.company.ebitdaMarginPercent}%
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-[10px]">
                   <div>
                     <div className="text-war-muted mb-0.5">EBITDA</div>
                     <div className="text-war-white font-semibold">
-                      ${(scenario.company.annualRevenueMillions * scenario.company.ebitdaMarginPercent / 100).toFixed(0)}M
+                      $
+                      {(
+                        (scenario.company.annualRevenueMillions *
+                          scenario.company.ebitdaMarginPercent) /
+                        100
+                      ).toFixed(0)}
+                      M
                     </div>
                   </div>
                   <div>
-                    <div className="text-war-muted mb-0.5">Revenue/Employee</div>
+                    <div className="text-war-muted mb-0.5">
+                      Revenue/Employee
+                    </div>
                     <div className="text-war-white font-semibold">
-                      ${(scenario.company.annualRevenueMillions * 1000000 / scenario.company.employeeCount).toLocaleString()}
+                      $
+                      {(
+                        (scenario.company.annualRevenueMillions * 1000000) /
+                        scenario.company.employeeCount
+                      ).toLocaleString()}
                     </div>
                   </div>
                   <div>
                     <div className="text-war-muted mb-0.5">Est. Market Cap</div>
                     <div className="text-war-white font-semibold">
-                      ${(scenario.company.annualRevenueMillions * 2.3).toFixed(0)}M
+                      $
+                      {(scenario.company.annualRevenueMillions * 2.3).toFixed(
+                        0
+                      )}
+                      M
                     </div>
                   </div>
                 </div>
@@ -338,34 +463,64 @@ export function ScenarioGlobe() {
 
             <div className="pt-3 border-t border-war-border/30 space-y-2">
               <div>
-                <div className="text-war-muted text-[10px] mb-1 font-semibold uppercase tracking-wide">Infrastructure</div>
-                <div className="text-war-white/90 leading-relaxed">{scenario.company.infrastructure}</div>
+                <div className="text-war-muted text-[10px] mb-1 font-semibold uppercase tracking-wide">
+                  Infrastructure
+                </div>
+                <div className="text-war-white/90 leading-relaxed">
+                  {scenario.company.infrastructure}
+                </div>
               </div>
               <div>
-                <div className="text-war-muted text-[10px] mb-1 font-semibold uppercase tracking-wide">Company History</div>
-                <div className="text-war-white/90 leading-relaxed">{scenario.company.history}</div>
+                <div className="text-war-muted text-[10px] mb-1 font-semibold uppercase tracking-wide">
+                  Company History
+                </div>
+                <div className="text-war-white/90 leading-relaxed">
+                  {scenario.company.history}
+                </div>
               </div>
             </div>
 
             <div className="pt-3 border-t border-war-border/30 space-y-3">
               <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
-                <div className="text-[10px] text-red-400 font-semibold uppercase tracking-wide mb-1">Current Risk Exposure (FAIR)</div>
+                <div className="text-[10px] text-red-400 font-semibold uppercase tracking-wide mb-1">
+                  Current Risk Exposure (FAIR)
+                </div>
                 <div className="text-sm font-bold text-war-white">
-                  Gross P90: ${scenario.lossProfile.grossP90Millions.toFixed(0)}M · Net P90: ${scenario.lossProfile.netP90Millions.toFixed(0)}M
+                  Gross P90: ${scenario.lossProfile.grossP90Millions.toFixed(0)}
+                  M · Net P90: ${scenario.lossProfile.netP90Millions.toFixed(0)}
+                  M
                 </div>
                 <div className="text-[10px] text-war-muted mt-1">
-                  {scenario.lossProfile.topDriver}. LEF {scenario.lossProfile.frequencyPerYear.toFixed(2)}/yr; EAL ${(scenario.lossProfile.meanLossMillions * scenario.lossProfile.frequencyPerYear).toFixed(1)}M.
+                  {scenario.lossProfile.topDriver}. LEF{" "}
+                  {scenario.lossProfile.frequencyPerYear.toFixed(2)}/yr; EAL $
+                  {(
+                    scenario.lossProfile.meanLossMillions *
+                    scenario.lossProfile.frequencyPerYear
+                  ).toFixed(1)}
+                  M.
                 </div>
               </div>
               <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3">
-                <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide mb-1">Financial Impact (FMVA)</div>
+                <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wide mb-1">
+                  Financial Impact (FMVA)
+                </div>
                 <div className="text-sm font-bold text-war-white">
-                  One P90 loss = {scenario.company.annualRevenueMillions * (scenario.company.ebitdaMarginPercent / 100) > 0
-                    ? Math.round((scenario.lossProfile.grossP90Millions / (scenario.company.annualRevenueMillions * (scenario.company.ebitdaMarginPercent / 100))) * 100)
-                    : "—"}% of annual EBITDA
+                  One P90 loss ={" "}
+                  {scenario.company.annualRevenueMillions *
+                    (scenario.company.ebitdaMarginPercent / 100) >
+                  0
+                    ? Math.round(
+                        (scenario.lossProfile.grossP90Millions /
+                          (scenario.company.annualRevenueMillions *
+                            (scenario.company.ebitdaMarginPercent / 100))) *
+                          100
+                      )
+                    : "—"}
+                  % of annual EBITDA
                 </div>
                 <div className="text-[10px] text-war-muted mt-1">
-                  P90 as % EBITDA — standard FMVA bridge from FAIR loss magnitude to operating profit impact.
+                  P90 as % EBITDA — standard FMVA bridge from FAIR loss
+                  magnitude to operating profit impact.
                 </div>
               </div>
             </div>
