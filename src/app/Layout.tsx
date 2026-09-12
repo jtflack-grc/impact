@@ -7,41 +7,41 @@ import { WelcomePopup } from "./WelcomePopup";
 export function Layout() {
   return (
     <>
-      <div className="flex flex-col h-screen bg-black relative" style={{ color: '#ffffff' }}>
-      {/* Top bar - inline color so header is always visible */}
-      <header className="shrink-0 border-b border-gray-800 flex items-center justify-between px-4 md:px-8 py-3" style={{ backgroundColor: 'rgba(0,0,0,0.9)', color: '#ffffff' }}>
-        <div className="w-[40px] md:w-[80px]" aria-hidden="true" />
-        <div className="flex flex-col items-center gap-1">
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-[0.2em] md:tracking-[0.35em]" style={{ color: '#ffffff' }}>
-            IMPACT!
-          </h1>
-          <p className="text-[10px] md:text-[11px] tracking-wide" style={{ color: '#a3a3a3' }}>
-            A FAIR and FMVA Financial Simulator
-          </p>
-        </div>
-        <div className="flex items-center gap-2 md:gap-3 text-xs">
-          <CreditsPopup />
-        </div>
-      </header>
+      <div className="impact-shell flex h-screen flex-col bg-war-bg text-war-white">
+        <header className="impact-topbar shrink-0 border-b border-war-border px-4 py-2.5 md:px-6">
+          <div className="flex min-w-0 items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3 md:gap-4">
+              <h1 className="shrink-0 text-xl font-semibold tracking-[0.08em] text-war-white md:text-2xl">
+                IMPACT<span className="text-red-400">!</span>
+              </h1>
+              <div className="hidden h-7 w-px bg-war-border sm:block" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-war-white/90">FAIR × FMVA</p>
+                <p className="truncate text-[11px] text-war-muted">
+                  Quantitative cyber risk and capital decision simulator
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center text-xs">
+              <CreditsPopup />
+            </div>
+          </div>
+        </header>
 
-      {/* Three-column main layout - inline color so content is visible if Tailwind fails */}
-      <main className="flex-1 flex flex-col md:flex-row bg-black overflow-hidden" style={{ color: "#ffffff" }}>
-        {/* Left: Faux LLM / chat */}
-        <section className="flex flex-col w-full md:w-[320px] lg:w-[360px] border-r border-gray-800 bg-gradient-to-b from-black to-[#020617] min-h-0">
-          <ChatPanel />
-        </section>
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-war-bg md:flex-row">
+          <section className="scenario-rail flex min-h-0 w-full flex-col border-r border-war-border md:w-[300px] lg:w-[340px] xl:w-[380px]">
+            <ChatPanel />
+          </section>
 
-        {/* Middle: Metrics dashboard */}
-        <section className="flex-1 min-w-0 md:min-w-[320px] md:max-w-[640px] border-r border-gray-800 bg-[#020617] min-h-0 overflow-y-auto">
-          <MetricsDashboard />
-        </section>
+          <section className="analysis-rail min-h-0 min-w-0 flex-1 overflow-y-auto border-r border-war-border md:min-w-[360px] lg:min-w-[440px] xl:min-w-[520px] xl:max-w-[720px]">
+            <MetricsDashboard />
+          </section>
 
-        {/* Right: Globe */}
-        <section className="hidden md:flex flex-1 min-w-0 md:min-w-[380px] bg-black relative">
-          <ScenarioGlobe />
-        </section>
-      </main>
-    </div>
+          <section className="globe-rail relative hidden min-w-0 flex-[1.25] bg-black md:flex md:min-w-[340px] lg:min-w-[400px]">
+            <ScenarioGlobe />
+          </section>
+        </main>
+      </div>
       <WelcomePopup />
     </>
   );
