@@ -1,217 +1,257 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import Globe from "react-globe.gl";
-import { Canvas } from "@react-three/fiber";
-import { Stars } from "@react-three/drei";
-import {
-  Color,
-  MeshPhongMaterial,
-  NoColorSpace,
-  SRGBColorSpace,
-  TextureLoader,
-} from "three";
+import { useEffect, useRef, useState } from "react";
 import { useScenarioStore } from "../store/scenarioStore";
 
-interface CountryFeature {
-  type: "Feature";
-  properties: { name: string };
-  geometry: {
-    type: string;
-    coordinates: unknown;
-  };
+declare global {
+  interface Window {
+    Cesium: any;
+    CESIUM_BASE_URL?: string;
+  }
 }
 
 const WORLD_GEOJSON_URL =
   "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson";
-
-const EARTH_IMAGE_URL =
-  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg";
-const EARTH_TOPOLOGY_URL =
-  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png";
-const EARTH_WATER_URL =
-  "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-water.png";
+const ARCGIS_TERRAIN_URL =
+  "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer";
+const ARCGIS_IMAGERY_URL =
+  "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer";
 
 const COUNTRY_ALIASES: Record<string, string[]> = {
   US: ["United States of America", "United States", "USA"],
   GB: ["United Kingdom", "UK", "United Kingdom of Great Britain and Northern Ireland"],
 };
 
-function isScenarioCountry(feature: CountryFeature, code: string, canonicalName: string): boolean {
-  const name = feature.properties.name;
+function isScenarioCountryName(name: string, code: string, canonicalName: string): boolean {
   const aliases = COUNTRY_ALIASES[code] ?? [canonicalName];
   return aliases.some(
     (alias) => alias === name || name.includes(alias) || alias.includes(name)
   );
 }
 
+function getEntityCountryName(entity: any): string {
+  const property = entity?.properties?.name;
+  const value = property?.getValue ? property.getValue() : property;
+  return String(value ?? entity?.name ?? "");
+}
+
 export function ScenarioGlobe() {
   const scenario = useScenarioStore((s) => s.scenarios[s.currentScenarioIndex]);
-  const [countries, setCountries] = useState<CountryFeature[]>([]);
-  const globeRef = useRef<ReturnType<typeof Globe> | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const viewerRef = useRef<any>(null);
+  const countrySourceRef = useRef<any>(null);
+  const clickHandlerRef = useRef<any>(null);
   const [showPopup, setShowPopup] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [terrainState, setTerrainState] = useState<"loading" | "streaming" | "fallback" | "error">("loading");
 
-  const terrainMaterial = useMemo(() => {
-    const loader = new TextureLoader();
-    const earthTexture = loader.load(EARTH_IMAGE_URL);
-    earthTexture.colorSpace = SRGBColorSpace;
+  useEffect(() => {
+    let disposed = false;
+    let viewer: any = null;
 
-    const elevationTexture = loader.load(EARTH_TOPOLOGY_URL);
-    elevationTexture.colorSpace = NoColorSpace;
+    const initialize = async () => {
+      const Cesium = window.Cesium;
+      if (!Cesium || !containerRef.current) {
+        setTerrainState("error");
+        return;
+      }
 
-    const waterTexture = loader.load(EARTH_WATER_URL);
-    waterTexture.colorSpace = NoColorSpace;
+      let terrainProvider: any;
+      try {
+        terrainProvider = await Cesium.ArcGISTiledElevationTerrainProvider.fromUrl(
+          ARCGIS_TERRAIN_URL
+        );
+        if (!disposed) setTerrainState("streaming");
+      } catch (error) {
+        console.warn("Cesium terrain unavailable; using ellipsoid fallback.", error);
+        terrainProvider = new Cesium.EllipsoidTerrainProvider();
+        if (!disposed) setTerrainState("fallback");
+      }
 
-    return new MeshPhongMaterial({
-      map: earthTexture,
-      bumpMap: elevationTexture,
-      bumpScale: 1.15,
-      displacementMap: elevationTexture,
-      // Deliberately exaggerated so relief remains legible in the narrow game rail.
-      // The underlying elevation pattern is real topography; this is not a to-scale Earth model.
-      displacementScale: 1.35,
-      specularMap: waterTexture,
-      specular: new Color(0x3f6480),
-      shininess: 10,
-    });
+      if (disposed || !containerRef.current) return;
+
+      viewer = new Cesium.Viewer(containerRef.current, {
+        animation: false,
+        baseLayer: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        geocoder: false,
+        homeButton: false,
+        infoBox: false,
+        navigationHelpButton: false,
+        sceneModePicker: false,
+        selectionIndicator: false,
+        timeline: false,
+        terrainProvider,
+      });
+      viewerRef.current = viewer;
+
+      viewer.scene.globe.enableLighting = true;
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString("#07111b");
+      viewer.scene.highDynamicRange = true;
+      viewer.scene.screenSpaceCameraController.minimumZoomDistance = 100;
+      viewer.scene.screenSpaceCameraController.maximumZoomDistance = 30_000_000;
+      viewer.resolutionScale = Math.min(window.devicePixelRatio || 1, 1.5);
+
+      try {
+        const imageryProvider = await Cesium.ArcGisMapServerImageryProvider.fromUrl(
+          ARCGIS_IMAGERY_URL
+        );
+        if (!disposed && viewer && !viewer.isDestroyed()) {
+          const layer = viewer.imageryLayers.addImageryProvider(imageryProvider);
+          layer.brightness = 0.78;
+          layer.contrast = 1.08;
+          layer.saturation = 0.78;
+        }
+      } catch (error) {
+        console.warn("ArcGIS World Imagery could not be loaded.", error);
+      }
+
+      try {
+        const countries = await Cesium.GeoJsonDataSource.load(WORLD_GEOJSON_URL, {
+          clampToGround: true,
+        });
+        if (!disposed && viewer && !viewer.isDestroyed()) {
+          viewer.dataSources.add(countries);
+          countrySourceRef.current = countries;
+        }
+      } catch (error) {
+        console.warn("Country overlay could not be loaded.", error);
+      }
+
+      if (disposed || !viewer || viewer.isDestroyed()) return;
+
+      const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+      handler.setInputAction((movement: any) => {
+        const picked = viewer.scene.pick(movement.position);
+        const entity = picked?.id;
+        if (entity?.__impactScenarioCountry || entity?.__impactHq) {
+          setShowPopup((previous) => !previous);
+        }
+      }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+      clickHandlerRef.current = handler;
+
+      setReady(true);
+    };
+
+    void initialize();
+
+    return () => {
+      disposed = true;
+      if (clickHandlerRef.current && !clickHandlerRef.current.isDestroyed()) {
+        clickHandlerRef.current.destroy();
+      }
+      clickHandlerRef.current = null;
+      countrySourceRef.current = null;
+      viewerRef.current = null;
+      if (viewer && !viewer.isDestroyed()) viewer.destroy();
+    };
   }, []);
 
   useEffect(() => {
-    return () => {
-      terrainMaterial.map?.dispose();
-      terrainMaterial.bumpMap?.dispose();
-      terrainMaterial.displacementMap?.dispose();
-      terrainMaterial.specularMap?.dispose();
-      terrainMaterial.dispose();
-    };
-  }, [terrainMaterial]);
+    if (!ready) return;
 
-  const canonicalName = useMemo(
-    () => scenario.countryName,
-    [scenario.countryName]
-  );
+    const Cesium = window.Cesium;
+    const viewer = viewerRef.current;
+    if (!Cesium || !viewer || viewer.isDestroyed()) return;
 
-  const hqPoint = useMemo(
-    () => [{ lat: scenario.latitude, lng: scenario.longitude, label: scenario.company.name }],
-    [scenario.latitude, scenario.longitude, scenario.company.name]
-  );
+    setShowPopup(true);
+    viewer.entities.removeAll();
 
-  const hqRing = useMemo(
-    () => [{ lat: scenario.latitude, lng: scenario.longitude, maxRadius: 2, propagationSpeed: 0.5 }],
-    [scenario.latitude, scenario.longitude]
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    if (countries.length === 0) {
-      fetch(WORLD_GEOJSON_URL)
-        .then((r) => r.json())
-        .then((geo) => {
-          if (!cancelled) {
-            setCountries(geo.features as CountryFeature[]);
-          }
-        })
-        .catch(() => {});
-    }
-    return () => {
-      cancelled = true;
-    };
-  }, [countries.length]);
-
-  const focusScenario = () => {
-    const globe = globeRef.current as unknown as {
-      pointOfView: (
-        pos: { lat: number; lng: number; altitude: number },
-        ms?: number
-      ) => void;
-    } | null;
-    if (!globe?.pointOfView) return;
-    globe.pointOfView(
-      {
-        lat: scenario.latitude,
-        lng: scenario.longitude,
-        altitude: 1.55,
+    const hq = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(
+        scenario.longitude,
+        scenario.latitude,
+        1200
+      ),
+      point: {
+        pixelSize: 11,
+        color: Cesium.Color.fromCssColorString("#7dd3fc"),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+        heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
       },
-      1000
-    );
-  };
+      label: {
+        text: scenario.company.name,
+        font: "600 13px IBM Plex Sans, sans-serif",
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 4,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        pixelOffset: new Cesium.Cartesian2(0, -24),
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+        disableDepthTestDistance: Number.POSITIVE_INFINITY,
+      },
+      ellipse: {
+        semiMajorAxis: 32_000,
+        semiMinorAxis: 32_000,
+        material: Cesium.Color.fromCssColorString("#38bdf8").withAlpha(0.16),
+        outline: true,
+        outlineColor: Cesium.Color.fromCssColorString("#7dd3fc").withAlpha(0.8),
+        height: 0,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+      },
+    });
+    hq.__impactHq = true;
 
-  useEffect(() => {
-    focusScenario();
-  }, [scenario.latitude, scenario.longitude]);
+    const countrySource = countrySourceRef.current;
+    if (countrySource) {
+      for (const entity of countrySource.entities.values) {
+        const name = getEntityCountryName(entity);
+        const selected = isScenarioCountryName(
+          name,
+          scenario.countryCode,
+          scenario.countryName
+        );
+        entity.__impactScenarioCountry = selected;
+        if (entity.polygon) {
+          entity.polygon.material = selected
+            ? Cesium.Color.fromCssColorString("#ef4444").withAlpha(0.22)
+            : Cesium.Color.TRANSPARENT;
+          entity.polygon.outline = selected;
+          entity.polygon.outlineColor = selected
+            ? Cesium.Color.fromCssColorString("#fca5a5")
+            : Cesium.Color.TRANSPARENT;
+        }
+      }
+    }
+
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(
+        scenario.longitude,
+        scenario.latitude,
+        620_000
+      ),
+      orientation: {
+        heading: Cesium.Math.toRadians(0),
+        pitch: Cesium.Math.toRadians(-48),
+        roll: 0,
+      },
+      duration: 1.6,
+    });
+  }, [
+    ready,
+    scenario.countryCode,
+    scenario.countryName,
+    scenario.latitude,
+    scenario.longitude,
+    scenario.company.name,
+  ]);
 
   return (
-    <div className="relative w-full h-full bg-black">
-      {/* Twinkling starfield background. Kept intentionally lighter to leave GPU headroom for terrain. */}
-      <div className="absolute inset-0 pointer-events-none">
-        <Canvas camera={{ position: [0, 0, 1], fov: 75 }}>
-          <color attach="background" args={["#020617"]} />
-          <Stars
-            radius={300}
-            depth={150}
-            count={3500}
-            factor={7}
-            saturation={0}
-            fade
-            speed={0.35}
-          />
-        </Canvas>
-      </div>
+    <div className="relative w-full h-full bg-black overflow-hidden">
+      <div ref={containerRef} className="absolute inset-0" />
 
-      {/* Terrain globe overlay */}
-      <div className="relative z-10 w-full h-full">
-        <Globe
-          ref={globeRef as any}
-          width={undefined}
-          height={undefined}
-          backgroundColor="rgba(2,6,23,0)"
-          rendererConfig={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-          globeMaterial={terrainMaterial}
-          globeCurvatureResolution={0.75}
-          onGlobeReady={focusScenario}
-          polygonsData={countries}
-          polygonAltitude={(d: object) =>
-            isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName) ? 0.032 : 0.019
-          }
-          polygonCapColor={(d: object) =>
-            isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName)
-              ? "rgba(239,68,68,0.50)"
-              : "rgba(15,23,42,0.035)"
-          }
-          polygonSideColor={() => "rgba(15,23,42,0.12)"}
-          polygonStrokeColor={(d: object) =>
-            isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName)
-              ? "rgba(248,113,113,0.95)"
-              : "rgba(203,213,225,0.22)"
-          }
-          atmosphereColor="rgb(125,211,252)"
-          atmosphereAltitude={0.13}
-          showAtmosphere
-          onPolygonClick={(d: object) => {
-            if (isScenarioCountry(d as CountryFeature, scenario.countryCode, canonicalName)) {
-              setShowPopup((prev) => !prev);
-            }
-          }}
-          hexPolygonsData={undefined}
-          pointsData={hqPoint}
-          pointLat="lat"
-          pointLng="lng"
-          pointLabel="label"
-          pointColor={() => "rgba(96,165,250,1)"}
-          pointAltitude={0.065}
-          pointRadius={0.42}
-          pointResolution={16}
-          ringsData={hqRing}
-          ringLat="lat"
-          ringLng="lng"
-          ringMaxRadius="maxRadius"
-          ringPropagationSpeed="propagationSpeed"
-          ringColor={() => "rgba(125,211,252,0.7)"}
-          ringAltitude={0.055}
-        />
+      <div className="absolute right-3 top-3 z-10 rounded border border-white/15 bg-black/65 px-2 py-1 text-[9px] uppercase tracking-[0.16em] text-slate-300 backdrop-blur">
+        {terrainState === "streaming" && "Cesium terrain · streamed"}
+        {terrainState === "loading" && "Cesium terrain · loading"}
+        {terrainState === "fallback" && "Cesium terrain · fallback"}
+        {terrainState === "error" && "Cesium · unavailable"}
       </div>
 
       {showPopup && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-lg w-[90%] rounded-2xl bg-gradient-to-b from-black/95 to-[#020617]/95 border-2 border-war-border/80 px-6 py-5 backdrop-blur-xl shadow-2xl z-20">
-          {/* Header */}
           <div className="flex items-start justify-between gap-3 mb-4 pb-4 border-b border-war-border/50">
             <div className="flex-1">
               <div className="text-[10px] tracking-[0.2em] uppercase text-emerald-400 mb-1 font-semibold">
@@ -233,8 +273,7 @@ export function ScenarioGlobe() {
               </svg>
             </button>
           </div>
-          
-          {/* Company Overview */}
+
           <div className="space-y-4 text-xs">
             <div>
               <h3 className="text-xs font-semibold uppercase tracking-wide text-war-muted mb-2">Company Overview</h3>
@@ -258,7 +297,6 @@ export function ScenarioGlobe() {
               </div>
             </div>
 
-            {/* 10K Financials */}
             <div className="pt-3 border-t border-war-border/30">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-war-muted mb-3">Financial Summary (10-K Style)</h3>
               <div className="space-y-2">
@@ -295,7 +333,6 @@ export function ScenarioGlobe() {
               </div>
             </div>
 
-            {/* Infrastructure & History */}
             <div className="pt-3 border-t border-war-border/30 space-y-2">
               <div>
                 <div className="text-war-muted text-[10px] mb-1 font-semibold uppercase tracking-wide">Infrastructure</div>
@@ -307,7 +344,6 @@ export function ScenarioGlobe() {
               </div>
             </div>
 
-            {/* Risk Context — FAIR (red) and FMVA (green) rigor blurbs */}
             <div className="pt-3 border-t border-war-border/30 space-y-3">
               <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                 <div className="text-[10px] text-red-400 font-semibold uppercase tracking-wide mb-1">Current Risk Exposure (FAIR)</div>
