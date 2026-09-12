@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import { useScenarioStore } from "../store/scenarioStore";
 import { useImpactInteractionStore } from "../store/interactionStore";
@@ -47,6 +48,7 @@ export function ScenarioGlobe() {
   const lastChoiceImpact = useScenarioStore((s) => s.lastChoiceImpact);
   const showResults = useScenarioStore((s) => s.showResults);
   const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
+  const tailSelection = useImpactInteractionStore((s) => s.tailSelection);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<any>(null);
   const countrySourceRef = useRef<any>(null);
@@ -58,6 +60,9 @@ export function ScenarioGlobe() {
   const [terrainState, setTerrainState] = useState<
     "loading" | "streaming" | "fallback" | "error"
   >("loading");
+
+  const activeTailSelection =
+    tailSelection?.scenarioId === scenario.id ? tailSelection : null;
 
   useEffect(() => {
     let disposed = false;
@@ -198,11 +203,14 @@ export function ScenarioGlobe() {
       : 0;
     const magnitudeScale = 0.9 + Math.min(0.8, Math.max(0, lossShare * 3.5));
     const focusScale = linkedFocus === "grossP90" ? 1.45 : linkedFocus === "netP90" ? 1.28 : linkedFocus === "frequency" ? 1.18 : 1;
+    const tailScale = activeTailSelection
+      ? 1 + Math.min(0.75, activeTailSelection.percentileLow * 0.45 + Math.min(0.3, activeTailSelection.ebitdaSharePercent / 100))
+      : 1;
     const choiceMagnitude = lastChoiceImpact
       ? Object.values(lastChoiceImpact.metricDeltas).reduce((total, delta) => total + Math.abs(delta ?? 0), 0) / 100
       : 0;
     const choiceScale = showResults ? 1 + Math.min(0.45, choiceMagnitude * 0.9) : 1;
-    const beaconScale = magnitudeScale * focusScale * choiceScale;
+    const beaconScale = magnitudeScale * focusScale * choiceScale * tailScale;
     const pulseDivisor = Math.max(135, 240 / Math.min(1.75, beaconScale));
     const ringPeriod = Math.max(1350, 2600 / Math.min(1.65, beaconScale));
 
@@ -352,6 +360,7 @@ export function ScenarioGlobe() {
     }
   }, [
     ready,
+    activeTailSelection,
     linkedFocus,
     lastChoiceImpact,
     showResults,
@@ -376,6 +385,13 @@ export function ScenarioGlobe() {
         {terrainState === "fallback" && "Cesium terrain · fallback"}
         {terrainState === "error" && "Cesium · unavailable"}
       </div>
+
+      {activeTailSelection && (
+        <div className="absolute right-3 top-10 z-10 border border-red-400/35 bg-black/75 px-2 py-1.5 font-mono text-[9px] text-red-200">
+          <div className="uppercase tracking-[0.14em]">{activeTailSelection.label}</div>
+          <div className="mt-0.5 text-slate-300">Conditional mean ${activeTailSelection.conditionalMeanMillions.toFixed(1)}M</div>
+        </div>
+      )}
 
       {showPopup && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-lg w-[90%] rounded-2xl bg-gradient-to-b from-black/95 to-[#020617]/95 border-2 border-war-border/80 px-6 py-5 backdrop-blur-xl shadow-2xl z-20">

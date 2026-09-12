@@ -3,6 +3,7 @@ import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import { useScenarioStore } from "../store/scenarioStore";
 import { useImpactInteractionStore, type ImpactLinkedFocus } from "../store/interactionStore";
 import { EduTooltip } from "./EduTooltip";
+import { LossTailExplorer } from "./LossTailExplorer";
 import { DeepFinanceMode } from "./DeepFinanceMode/DeepFinanceMode";
 import { useStore } from "../store";
 import { dcfFromCashFlows } from "../model/dcf";
@@ -95,14 +96,6 @@ export function MetricsDashboard() {
     };
   }, [scenario.lossProfile, activeMetrics.controlAdoption]);
 
-  const lossDistributionData = useMemo(() => {
-    const p50 = dynamicLossProfile.meanLoss;
-    const p90 = dynamicLossProfile.grossP90;
-    return [
-      { percentile: "P50", value: p50, label: "50th" },
-      { percentile: "P90", value: p90, label: "90th" },
-    ];
-  }, [dynamicLossProfile]);
 
   const revenueAtRiskData = useMemo(() => {
     const revenue = scenario.company.annualRevenueMillions;
@@ -303,31 +296,16 @@ export function MetricsDashboard() {
               infoBadge="FAIR"
             />
           </div>
-          <div className="mt-4 rounded-xl border border-war-border/80 bg-black/60 p-4">
-            <h3 className="flex items-center gap-1.5 text-xs font-semibold text-war-white/90 mb-3">
-              Loss distribution (key FAIR percentiles)
-              <EduTooltip
-                title="Percentiles (P50, P90)"
-                body="From FAIR’s Monte Carlo simulations: P50 is the median loss; P90 means 90% of simulated outcomes fall below this amount—a conservative estimate for planning and reserves. Finance uses these like value-at-risk (VaR) for operational risk."
-                badge="FAIR"
-              />
-            </h3>
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={lossDistributionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="label" tick={{ fill: "#737373", fontSize: 10 }} />
-                <YAxis tick={{ fill: "#737373", fontSize: 10 }} tickFormatter={(v) => `$${v.toFixed(0)}M`} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#000", border: "1px solid #0d0d0d", borderRadius: "8px" }}
-                  formatter={(value: number) => formatMillions(value)}
-                />
-                <Bar dataKey="value" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <p className="text-[10px] text-war-muted mt-2">
-              Key FAIR-style percentiles: P50 (typical outcome) and P90 (conservative tail loss where 90% of outcomes fall below this amount).
-            </p>
-          </div>
+          <LossTailExplorer
+            scenarioId={scenario.id}
+            meanLossMillions={dynamicLossProfile.meanLoss}
+            grossP90Millions={dynamicLossProfile.grossP90}
+            netP90Millions={dynamicLossProfile.netP90}
+            frequencyPerYear={dynamicLossProfile.frequency}
+            annualRevenueMillions={scenario.company.annualRevenueMillions}
+            ebitdaMarginPercent={scenario.company.ebitdaMarginPercent}
+            topDriver={scenario.lossProfile.topDriver}
+          />
           <div className="mt-4 rounded-xl border border-war-border/80 bg-black/60 p-4">
             <h3 className="flex items-center gap-1.5 text-xs font-semibold text-war-white/90 mb-3">
               Revenue at risk (FMVA view)
@@ -525,9 +503,15 @@ export function MetricsDashboard() {
               </div>
             </div>
             <div className="mt-3 pt-3 border-t border-war-border/50">
-              <div className="text-[10px] text-war-muted mb-2">Monte Carlo simulation results (10,000 iterations)</div>
+              <div className="text-[10px] text-war-muted mb-2">Scenario loss anchors (published case inputs)</div>
               <ResponsiveContainer width="100%" height={140}>
-                <BarChart data={lossDistributionData}>
+                <BarChart
+                  data={[
+                    { label: "Mean loss", value: dynamicLossProfile.meanLoss },
+                    { label: "Gross P90", value: dynamicLossProfile.grossP90 },
+                    { label: "Net P90", value: dynamicLossProfile.netP90 },
+                  ]}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                   <XAxis dataKey="label" tick={{ fill: "#737373", fontSize: 9 }} />
                   <YAxis tick={{ fill: "#737373", fontSize: 9 }} tickFormatter={(v) => `$${v.toFixed(0)}M`} />
