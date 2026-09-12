@@ -23,20 +23,29 @@ const FAIR_LINKED = new Set<ScenarioMetricKey>([
 ]);
 
 export function WhyDidThisChange() {
-  const scenario = useScenarioStore((state) => state.scenarios[state.currentScenarioIndex]);
+  const scenario = useScenarioStore(
+    (state) => state.scenarios[state.currentScenarioIndex]
+  );
   const activeMetrics = useScenarioStore((state) => state.activeMetrics);
   const lastChoiceImpact = useScenarioStore((state) => state.lastChoiceImpact);
-  const setLinkedFocus = useImpactInteractionStore((state) => state.setLinkedFocus);
-  const clearLinkedFocus = useImpactInteractionStore((state) => state.clearLinkedFocus);
+  const setLinkedFocus = useImpactInteractionStore(
+    (state) => state.setLinkedFocus
+  );
+  const clearLinkedFocus = useImpactInteractionStore(
+    (state) => state.clearLinkedFocus
+  );
   const [open, setOpen] = useState(false);
-  const [selectedMetric, setSelectedMetric] = useState<ScenarioMetricKey | null>(null);
+  const [selectedMetric, setSelectedMetric] =
+    useState<ScenarioMetricKey | null>(null);
 
   const changedMetrics = useMemo(
     () =>
-      (Object.entries(lastChoiceImpact?.metricDeltas ?? {}) as [
-        ScenarioMetricKey,
-        number,
-      ][]).filter(([, delta]) => typeof delta === "number" && delta !== 0),
+      (
+        Object.entries(lastChoiceImpact?.metricDeltas ?? {}) as [
+          ScenarioMetricKey,
+          number,
+        ][]
+      ).filter(([, delta]) => typeof delta === "number" && delta !== 0),
     [lastChoiceImpact]
   );
 
@@ -98,7 +107,9 @@ export function WhyDidThisChange() {
             Why did this change?
           </span>
         </span>
-        <span className="font-mono text-xs text-slate-400">{open ? "−" : "+"}</span>
+        <span className="font-mono text-xs text-slate-400">
+          {open ? "−" : "+"}
+        </span>
       </button>
 
       {open && (
@@ -119,7 +130,8 @@ export function WhyDidThisChange() {
             <div className="border border-slate-700 px-2 py-2">
               <div className="text-slate-500">Vulnerability</div>
               <div className="mt-1 text-white">
-                {(before.vulnerabilityProxy * 100).toFixed(0)}% → {(after.vulnerabilityProxy * 100).toFixed(0)}%
+                {(before.vulnerabilityProxy * 100).toFixed(0)}% →{" "}
+                {(after.vulnerabilityProxy * 100).toFixed(0)}%
               </div>
             </div>
             <div className="border border-slate-700 px-2 py-2">
@@ -131,13 +143,15 @@ export function WhyDidThisChange() {
             <div className="border border-slate-700 px-2 py-2">
               <div className="text-slate-500">LEF</div>
               <div className="mt-1 text-white">
-                {before.loss.frequency.toFixed(2)}/yr → {after.loss.frequency.toFixed(2)}/yr
+                {before.loss.frequency.toFixed(2)}/yr →{" "}
+                {after.loss.frequency.toFixed(2)}/yr
               </div>
             </div>
             <div className="border border-slate-700 px-2 py-2">
               <div className="text-slate-500">Expected annual loss</div>
               <div className="mt-1 text-white">
-                {formatImpactMillions(before.expectedAnnualLossMillions)} → {formatImpactMillions(after.expectedAnnualLossMillions)}
+                {formatImpactMillions(before.expectedAnnualLossMillions)} →{" "}
+                {formatImpactMillions(after.expectedAnnualLossMillions)}
               </div>
             </div>
           </div>
@@ -158,7 +172,8 @@ export function WhyDidThisChange() {
                       : "border-slate-700 text-slate-300 hover:border-slate-500"
                   }`}
                 >
-                  {LABELS[key]} {delta > 0 ? "+" : ""}{delta}
+                  {LABELS[key]} {delta > 0 ? "+" : ""}
+                  {delta}
                 </button>
               ))}
             </div>
@@ -166,15 +181,31 @@ export function WhyDidThisChange() {
 
           {selectedMetric && (
             <div className="mt-3 border-l-2 border-red-400 pl-3 text-[10px] leading-relaxed text-slate-300">
-              <span className="font-semibold text-white">{LABELS[selectedMetric]} {selectedDelta && selectedDelta > 0 ? "+" : ""}{selectedDelta}</span>{" "}
+              <span className="font-semibold text-white">
+                {LABELS[selectedMetric]}{" "}
+                {selectedDelta && selectedDelta > 0 ? "+" : ""}
+                {selectedDelta}
+              </span>{" "}
               {FAIR_LINKED.has(selectedMetric) ? (
                 selectedMetric === "controlAdoption" ? (
-                  <>changes the vulnerability side of the teaching model. Higher control adoption lowers the vulnerability proxy, which changes LEF and therefore expected annual loss.</>
+                  <>
+                    changes the vulnerability side of the teaching model. Higher
+                    control adoption lowers the vulnerability proxy, which
+                    changes LEF and therefore expected annual loss.
+                  </>
                 ) : (
-                  <>changes the threat-event-frequency side of the teaching model. That TEF factor combines with vulnerability to change LEF and therefore expected annual loss.</>
+                  <>
+                    changes the threat-event-frequency side of the teaching
+                    model. That TEF factor combines with vulnerability to change
+                    LEF and therefore expected annual loss.
+                  </>
                 )
               ) : (
-                <>is a scenario/game mechanic. It can change the narrative posture and decision quality, but it does not directly alter the FAIR loss calculation in this build.</>
+                <>
+                  is a scenario/game mechanic. It can change the narrative
+                  posture and decision quality, but it does not directly alter
+                  the FAIR loss calculation in this build.
+                </>
               )}
             </div>
           )}

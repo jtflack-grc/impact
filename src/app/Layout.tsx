@@ -23,9 +23,14 @@ export function Layout() {
               <h1 className="shrink-0 text-xl font-semibold tracking-[0.08em] text-war-white md:text-2xl">
                 IMPACT<span className="text-red-400">!</span>
               </h1>
-              <div className="hidden h-7 w-px bg-war-border sm:block" aria-hidden="true" />
+              <div
+                className="hidden h-7 w-px bg-war-border sm:block"
+                aria-hidden="true"
+              />
               <div className="min-w-0">
-                <p className="text-xs font-medium text-war-white/90">FAIR × FMVA</p>
+                <p className="text-xs font-medium text-war-white/90">
+                  FAIR × FMVA
+                </p>
                 <p className="truncate text-[11px] text-war-muted">
                   Quantitative cyber risk and capital decision simulator
                 </p>
@@ -34,7 +39,9 @@ export function Layout() {
             <div className="flex shrink-0 items-center gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => setViewMode(viewMode === "board" ? "analyst" : "board")}
+                onClick={() =>
+                  setViewMode(viewMode === "board" ? "analyst" : "board")
+                }
                 className={`border px-2.5 py-1.5 text-[10px] uppercase tracking-[0.12em] ${
                   viewMode === "board"
                     ? "border-red-400/60 bg-red-950/20 text-red-200"

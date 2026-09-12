@@ -43,28 +43,31 @@ interface ImpactInteractionState {
   replayCamera: () => void;
 }
 
-export const useImpactInteractionStore = create<ImpactInteractionState>((set) => ({
-  linkedFocus: null,
-  tailSelection: null,
-  viewMode: "analyst",
-  guidedActive: false,
-  guidedStep: 0,
-  guidedVoice: false,
-  cameraReplayToken: 0,
-  setLinkedFocus: (linkedFocus) => set({ linkedFocus }),
-  clearLinkedFocus: () => set({ linkedFocus: null }),
-  setTailSelection: (tailSelection) => set({ tailSelection }),
-  clearTailSelection: () => set({ tailSelection: null }),
-  setViewMode: (viewMode) => set({ viewMode }),
-  startGuided: () =>
-    set((state) => ({
-      guidedActive: true,
-      guidedStep: 0,
-      cameraReplayToken: state.cameraReplayToken + 1,
-    })),
-  stopGuided: () => set({ guidedActive: false, guidedStep: 0, linkedFocus: null }),
-  setGuidedStep: (guidedStep) => set({ guidedStep }),
-  setGuidedVoice: (guidedVoice) => set({ guidedVoice }),
-  replayCamera: () =>
-    set((state) => ({ cameraReplayToken: state.cameraReplayToken + 1 })),
-}));
+export const useImpactInteractionStore = create<ImpactInteractionState>(
+  (set) => ({
+    linkedFocus: null,
+    tailSelection: null,
+    viewMode: "analyst",
+    guidedActive: false,
+    guidedStep: 0,
+    guidedVoice: false,
+    cameraReplayToken: 0,
+    setLinkedFocus: (linkedFocus) => set({ linkedFocus }),
+    clearLinkedFocus: () => set({ linkedFocus: null }),
+    setTailSelection: (tailSelection) => set({ tailSelection }),
+    clearTailSelection: () => set({ tailSelection: null }),
+    setViewMode: (viewMode) => set({ viewMode }),
+    startGuided: () =>
+      set((state) => ({
+        guidedActive: true,
+        guidedStep: 0,
+        cameraReplayToken: state.cameraReplayToken + 1,
+      })),
+    stopGuided: () =>
+      set({ guidedActive: false, guidedStep: 0, linkedFocus: null }),
+    setGuidedStep: (guidedStep) => set({ guidedStep }),
+    setGuidedVoice: (guidedVoice) => set({ guidedVoice }),
+    replayCamera: () =>
+      set((state) => ({ cameraReplayToken: state.cameraReplayToken + 1 })),
+  })
+);

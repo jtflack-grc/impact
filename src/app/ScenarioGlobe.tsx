@@ -49,11 +49,15 @@ export function ScenarioGlobe() {
   const showResults = useScenarioStore((s) => s.showResults);
   const linkedFocus = useImpactInteractionStore((s) => s.linkedFocus);
   const tailSelection = useImpactInteractionStore((s) => s.tailSelection);
+  const cameraReplayToken = useImpactInteractionStore(
+    (s) => s.cameraReplayToken
+  );
   const containerRef = useRef<HTMLDivElement | null>(null);
   const viewerRef = useRef<any>(null);
   const countrySourceRef = useRef<any>(null);
   const clickHandlerRef = useRef<any>(null);
   const lastCameraScenarioRef = useRef<string | null>(null);
+  const lastCameraReplayTokenRef = useRef(0);
   const popupTimerRef = useRef<number | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [ready, setReady] = useState(false);
@@ -189,7 +193,9 @@ export function ScenarioGlobe() {
     if (!Cesium || !viewer || viewer.isDestroyed()) return;
 
     const scenarioChanged = lastCameraScenarioRef.current !== scenario.id;
-    if (scenarioChanged) {
+    const replayRequested =
+      lastCameraReplayTokenRef.current !== cameraReplayToken;
+    if (scenarioChanged || replayRequested) {
       if (popupTimerRef.current !== null) {
         window.clearTimeout(popupTimerRef.current);
         popupTimerRef.current = null;
@@ -198,18 +204,37 @@ export function ScenarioGlobe() {
     }
     viewer.entities.removeAll();
 
-    const lossShare = scenario.company.annualRevenueMillions > 0
-      ? scenario.lossProfile.grossP90Millions / scenario.company.annualRevenueMillions
-      : 0;
+    const lossShare =
+      scenario.company.annualRevenueMillions > 0
+        ? scenario.lossProfile.grossP90Millions /
+          scenario.company.annualRevenueMillions
+        : 0;
     const magnitudeScale = 0.9 + Math.min(0.8, Math.max(0, lossShare * 3.5));
-    const focusScale = linkedFocus === "grossP90" ? 1.45 : linkedFocus === "netP90" ? 1.28 : linkedFocus === "frequency" ? 1.18 : 1;
+    const focusScale =
+      linkedFocus === "grossP90"
+        ? 1.45
+        : linkedFocus === "netP90"
+          ? 1.28
+          : linkedFocus === "frequency"
+            ? 1.18
+            : 1;
     const tailScale = activeTailSelection
-      ? 1 + Math.min(0.75, activeTailSelection.percentileLow * 0.45 + Math.min(0.3, activeTailSelection.ebitdaSharePercent / 100))
+      ? 1 +
+        Math.min(
+          0.75,
+          activeTailSelection.percentileLow * 0.45 +
+            Math.min(0.3, activeTailSelection.ebitdaSharePercent / 100)
+        )
       : 1;
     const choiceMagnitude = lastChoiceImpact
-      ? Object.values(lastChoiceImpact.metricDeltas).reduce((total, delta) => total + Math.abs(delta ?? 0), 0) / 100
+      ? Object.values(lastChoiceImpact.metricDeltas).reduce(
+          (total, delta) => total + Math.abs(delta ?? 0),
+          0
+        ) / 100
       : 0;
-    const choiceScale = showResults ? 1 + Math.min(0.45, choiceMagnitude * 0.9) : 1;
+    const choiceScale = showResults
+      ? 1 + Math.min(0.45, choiceMagnitude * 0.9)
+      : 1;
     const beaconScale = magnitudeScale * focusScale * choiceScale * tailScale;
     const pulseDivisor = Math.max(135, 240 / Math.min(1.75, beaconScale));
     const ringPeriod = Math.max(1350, 2600 / Math.min(1.65, beaconScale));
@@ -314,7 +339,9 @@ export function ScenarioGlobe() {
         entity.__impactScenarioCountry = selected;
         if (entity.polygon) {
           entity.polygon.material = selected
-            ? Cesium.Color.fromCssColorString("#ef4444").withAlpha(Math.min(0.38, 0.18 + beaconScale * 0.08))
+            ? Cesium.Color.fromCssColorString("#ef4444").withAlpha(
+                Math.min(0.38, 0.18 + beaconScale * 0.08)
+              )
             : Cesium.Color.TRANSPARENT;
           entity.polygon.outline = selected;
           entity.polygon.outlineColor = selected
@@ -324,11 +351,16 @@ export function ScenarioGlobe() {
       }
     }
 
-    if (scenarioChanged) {
+    if (scenarioChanged || replayRequested) {
       lastCameraScenarioRef.current = scenario.id;
+      lastCameraReplayTokenRef.current = cameraReplayToken;
       const arrivalHeading = scenario.index % 2 === 0 ? 9 : -9;
       viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 9_100_000),
+        destination: Cesium.Cartesian3.fromDegrees(
+          scenario.longitude,
+          scenario.latitude,
+          9_100_000
+        ),
         orientation: {
           heading: Cesium.Math.toRadians(arrivalHeading),
           pitch: Cesium.Math.toRadians(-82),
@@ -336,9 +368,17 @@ export function ScenarioGlobe() {
         },
         duration: 0.95,
         complete: () => {
-          if (viewer.isDestroyed() || lastCameraScenarioRef.current !== scenario.id) return;
+          if (
+            viewer.isDestroyed() ||
+            lastCameraScenarioRef.current !== scenario.id
+          )
+            return;
           viewer.camera.flyTo({
-            destination: Cesium.Cartesian3.fromDegrees(scenario.longitude, scenario.latitude, 10_500_000),
+            destination: Cesium.Cartesian3.fromDegrees(
+              scenario.longitude,
+              scenario.latitude,
+              10_500_000
+            ),
             orientation: {
               heading: Cesium.Math.toRadians(0),
               pitch: Cesium.Math.toRadians(-90),
@@ -346,9 +386,16 @@ export function ScenarioGlobe() {
             },
             duration: 0.75,
             complete: () => {
-              if (viewer.isDestroyed() || lastCameraScenarioRef.current !== scenario.id) return;
+              if (
+                viewer.isDestroyed() ||
+                lastCameraScenarioRef.current !== scenario.id
+              )
+                return;
               popupTimerRef.current = window.setTimeout(() => {
-                if (!viewer.isDestroyed() && lastCameraScenarioRef.current === scenario.id) {
+                if (
+                  !viewer.isDestroyed() &&
+                  lastCameraScenarioRef.current === scenario.id
+                ) {
                   setShowPopup(true);
                 }
                 popupTimerRef.current = null;
@@ -361,6 +408,7 @@ export function ScenarioGlobe() {
   }, [
     ready,
     activeTailSelection,
+    cameraReplayToken,
     linkedFocus,
     lastChoiceImpact,
     showResults,
@@ -388,8 +436,13 @@ export function ScenarioGlobe() {
 
       {activeTailSelection && (
         <div className="absolute right-3 top-10 z-10 border border-red-400/35 bg-black/75 px-2 py-1.5 font-mono text-[9px] text-red-200">
-          <div className="uppercase tracking-[0.14em]">{activeTailSelection.label}</div>
-          <div className="mt-0.5 text-slate-300">Conditional mean ${activeTailSelection.conditionalMeanMillions.toFixed(1)}M</div>
+          <div className="uppercase tracking-[0.14em]">
+            {activeTailSelection.label}
+          </div>
+          <div className="mt-0.5 text-slate-300">
+            Conditional mean $
+            {activeTailSelection.conditionalMeanMillions.toFixed(1)}M
+          </div>
         </div>
       )}
 

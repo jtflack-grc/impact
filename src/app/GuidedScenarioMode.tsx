@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { deriveImpactAnalysis, formatImpactMillions } from "../model/impactAnalysis";
+import {
+  deriveImpactAnalysis,
+  formatImpactMillions,
+} from "../model/impactAnalysis";
 import { useImpactInteractionStore } from "../store/interactionStore";
 import { useScenarioStore } from "../store/scenarioStore";
 
@@ -10,7 +13,9 @@ type GuideStep = {
   focus: "grossP90" | "netP90" | "frequency" | null;
 };
 
-function choosePreferredVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
+function choosePreferredVoice(
+  voices: SpeechSynthesisVoice[]
+): SpeechSynthesisVoice | null {
   if (voices.length === 0) return null;
   const preferred = [
     "natural",
@@ -22,16 +27,22 @@ function choosePreferredVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVo
     "google us english",
     "samantha",
   ];
-  const english = voices.filter((voice) => voice.lang.toLowerCase().startsWith("en"));
+  const english = voices.filter((voice) =>
+    voice.lang.toLowerCase().startsWith("en")
+  );
   for (const needle of preferred) {
-    const match = english.find((voice) => voice.name.toLowerCase().includes(needle));
+    const match = english.find((voice) =>
+      voice.name.toLowerCase().includes(needle)
+    );
     if (match) return match;
   }
   return english[0] ?? voices[0] ?? null;
 }
 
 export function GuidedScenarioMode() {
-  const scenario = useScenarioStore((state) => state.scenarios[state.currentScenarioIndex]);
+  const scenario = useScenarioStore(
+    (state) => state.scenarios[state.currentScenarioIndex]
+  );
   const step = useScenarioStore((state) => {
     const activeScenario = state.scenarios[state.currentScenarioIndex];
     return activeScenario.steps[state.currentStepIndex];
@@ -40,11 +51,19 @@ export function GuidedScenarioMode() {
   const guidedActive = useImpactInteractionStore((state) => state.guidedActive);
   const guidedStep = useImpactInteractionStore((state) => state.guidedStep);
   const guidedVoice = useImpactInteractionStore((state) => state.guidedVoice);
-  const setGuidedStep = useImpactInteractionStore((state) => state.setGuidedStep);
-  const setGuidedVoice = useImpactInteractionStore((state) => state.setGuidedVoice);
+  const setGuidedStep = useImpactInteractionStore(
+    (state) => state.setGuidedStep
+  );
+  const setGuidedVoice = useImpactInteractionStore(
+    (state) => state.setGuidedVoice
+  );
   const stopGuided = useImpactInteractionStore((state) => state.stopGuided);
-  const setLinkedFocus = useImpactInteractionStore((state) => state.setLinkedFocus);
-  const clearLinkedFocus = useImpactInteractionStore((state) => state.clearLinkedFocus);
+  const setLinkedFocus = useImpactInteractionStore(
+    (state) => state.setLinkedFocus
+  );
+  const clearLinkedFocus = useImpactInteractionStore(
+    (state) => state.clearLinkedFocus
+  );
   const [playing, setPlaying] = useState(true);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
 
@@ -123,7 +142,9 @@ export function GuidedScenarioMode() {
     if (!guidedActive || !guidedVoice || !("speechSynthesis" in window)) return;
     const synth = window.speechSynthesis;
     synth.cancel();
-    const utterance = new SpeechSynthesisUtterance(`${current.title}. ${current.text}`);
+    const utterance = new SpeechSynthesisUtterance(
+      `${current.title}. ${current.text}`
+    );
     if (preferredVoice) utterance.voice = preferredVoice;
     utterance.rate = 0.93;
     utterance.pitch = 0.98;
@@ -135,9 +156,19 @@ export function GuidedScenarioMode() {
   useEffect(() => {
     if (!guidedActive || !playing || safeStep >= steps.length - 1) return;
     const duration = Math.max(4800, Math.min(9000, current.text.length * 36));
-    const timer = window.setTimeout(() => setGuidedStep(safeStep + 1), duration);
+    const timer = window.setTimeout(
+      () => setGuidedStep(safeStep + 1),
+      duration
+    );
     return () => window.clearTimeout(timer);
-  }, [current.text.length, guidedActive, playing, safeStep, setGuidedStep, steps.length]);
+  }, [
+    current.text.length,
+    guidedActive,
+    playing,
+    safeStep,
+    setGuidedStep,
+    steps.length,
+  ]);
 
   if (!guidedActive) return null;
 
@@ -151,8 +182,12 @@ export function GuidedScenarioMode() {
     <div className="fixed bottom-5 left-1/2 z-[80] w-[min(760px,calc(100vw-32px))] -translate-x-1/2 border border-slate-500/70 bg-[#07090b]/95 shadow-2xl backdrop-blur">
       <div className="flex items-center justify-between gap-3 border-b border-war-border px-4 py-2">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">Guided mode</span>
-          <span className="truncate text-[10px] text-war-muted">{safeStep + 1} / {steps.length}</span>
+          <span className="text-[9px] uppercase tracking-[0.2em] text-red-300/80">
+            Guided mode
+          </span>
+          <span className="truncate text-[10px] text-war-muted">
+            {safeStep + 1} / {steps.length}
+          </span>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
           <button
@@ -174,9 +209,15 @@ export function GuidedScenarioMode() {
       </div>
 
       <div className="px-4 py-3">
-        <div className="text-[9px] uppercase tracking-[0.18em] text-war-muted">{current.kicker}</div>
-        <div className="mt-1 text-base font-semibold text-war-white">{current.title}</div>
-        <p className="mt-1 text-xs leading-relaxed text-slate-300">{current.text}</p>
+        <div className="text-[9px] uppercase tracking-[0.18em] text-war-muted">
+          {current.kicker}
+        </div>
+        <div className="mt-1 text-base font-semibold text-war-white">
+          {current.title}
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-slate-300">
+          {current.text}
+        </p>
         {guidedVoice && (
           <div className="mt-2 font-mono text-[9px] text-slate-500">
             Voice: {preferredVoice?.name ?? "system default"}
