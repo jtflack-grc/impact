@@ -27,7 +27,7 @@ function fairTakeaway(deltas: Partial<Record<ScenarioMetricKey, number>>): strin
   // Note: incidentRate could map to TEF (Threat Event Frequency), but needs proper FAIR framing
   // For now, we'll keep it but frame it in FAIR terms
   if (deltas.incidentRate != null && deltas.incidentRate < 0) {
-    lines.push("Threat event frequency (TEF) reduced → lower loss event frequency (LEF).");
+    lines.push("Scenario frequency index reduced → lower modeled loss event frequency (LEF).");
   }
   // Non-FAIR metrics (welfareDebt, systemReversibility, debtIndex, successIndex) are game mechanics
   // and should not appear in FAIR takeaways
@@ -64,7 +64,7 @@ const LINKED_FOCUS_COPY: Record<Exclude<ImpactLinkedFocus, null>, { label: strin
   },
   incidentRate: {
     label: "Threat event frequency",
-    body: "A FAIR-linked frequency signal. Lower threat event frequency reduces the modeled rate at which loss events materialize.",
+    body: "A scenario frequency index, not an observed number of attack attempts. Lower values reduce modeled loss-event frequency relative to the authored baseline.",
   },
 };
 
