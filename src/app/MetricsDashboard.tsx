@@ -8,6 +8,8 @@ import { DeepFinanceMode } from "./DeepFinanceMode/DeepFinanceMode";
 import { useStore } from "../store";
 import { dcfFromCashFlows } from "../model/dcf";
 import { deriveImpactAnalysis } from "../model/impactAnalysis";
+import { calculateDecisionFinance } from "../model/riskDecisionFinance";
+import { FrequencySourceFacts } from "./FrequencySourceFacts";
 
 // Lazy load FMVA spreadsheet (heavy component with Handsontable)
 const FmvaSpreadsheet = lazy(() => import("./FmvaSpreadsheet").then(module => ({ default: module.FmvaSpreadsheet })));
@@ -19,50 +21,6 @@ function formatMillions(n: number): string {
 }
 
 const BASELINE_WACC = 0.092; // 9.2% discount rate for capital budgeting
-
-/** Compute NPV of control investment: cost at t=0, annual benefit (risk reduction) for years 1..3 */
-function npv(controlCost: number, annualBenefit: number, years = 3, discountRate = BASELINE_WACC): number {
-  let pvBenefits = 0;
-  for (let t = 1; t <= years; t++) {
-    pvBenefits += annualBenefit / Math.pow(1 + discountRate, t);
-  }
-  return -controlCost + pvBenefits;
-}
-
-/** Approximate IRR (rate where NPV = 0) by binary search */
-function irr(controlCost: number, annualBenefit: number, years = 3): number {
-  if (annualBenefit <= 0) return 0;
-  const totalBenefit = annualBenefit * years;
-  if (totalBenefit <= controlCost) return 0;
-  let low = 0;
-  let high = 2;
-  for (let i = 0; i < 50; i++) {
-    const mid = (low + high) / 2;
-    let pv = 0;
-    for (let t = 1; t <= years; t++) {
-      pv += annualBenefit / Math.pow(1 + mid, t);
-    }
-    if (pv >= controlCost) low = mid;
-    else high = mid;
-  }
-  return (low + high) / 2;
-}
-
-/** Payback in years: controlCost / annualBenefit */
-function paybackYears(controlCost: number, annualBenefit: number): number {
-  if (annualBenefit <= 0) return 999;
-  return controlCost / annualBenefit;
-}
-
-/** Profitability index: PV(benefits) / PV(costs) = PV(benefits) / controlCost */
-function profitabilityIndex(controlCost: number, annualBenefit: number, years = 3, discountRate = BASELINE_WACC): number {
-  if (controlCost <= 0) return 0;
-  let pvBenefits = 0;
-  for (let t = 1; t <= years; t++) {
-    pvBenefits += annualBenefit / Math.pow(1 + discountRate, t);
-  }
-  return pvBenefits / controlCost;
-}
 
 export function MetricsDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>("exposure");
@@ -107,19 +65,18 @@ export function MetricsDashboard() {
     [dynamicLossProfile.grossP90, companyEbitda]
   );
 
-  // Capital budgeting: control cost (3yr) from scenario scale; benefit = annual risk reduction (Gross P90 − Net P90)
-  const capitalBudgeting = useMemo(() => {
-    const annualBenefit = dynamicLossProfile.grossP90 - dynamicLossProfile.netP90;
-    const controlCost3yr = Math.max(2, scenario.company.annualRevenueMillions * 0.002 * 3); // ~0.2% of revenue per year × 3
-    return {
-      controlCost3yr,
-      annualBenefit,
-      npv: npv(controlCost3yr, annualBenefit, 3, effectiveWacc),
-      irr: irr(controlCost3yr, annualBenefit),
-      paybackYears: paybackYears(controlCost3yr, annualBenefit),
-      pi: profitabilityIndex(controlCost3yr, annualBenefit, 3, effectiveWacc),
-    };
-  }, [dynamicLossProfile, scenario.company.annualRevenueMillions, effectiveWacc]);
+  // EAL is a modeled frequency x conditional mean loss, not a P90 gap.
+  // The assumed intervention cost is a teaching proxy, not an observed expense.
+  const baselineEal = useMemo(
+    () => deriveImpactAnalysis(scenario, scenario.metrics).expectedAnnualLossMillions,
+    [scenario]
+  );
+  const capitalBudgeting = useMemo(
+    () => calculateDecisionFinance(
+      baselineEal, expectedAnnualLoss, scenario.company.annualRevenueMillions, effectiveWacc
+    ),
+    [baselineEal, expectedAnnualLoss, scenario.company.annualRevenueMillions, effectiveWacc]
+  );
 
   // FMVA: simple DCF valuation from projected FCFs
   const projectedFcfSeries = useMemo(() => {
@@ -246,10 +203,10 @@ export function MetricsDashboard() {
               focusKey="grossP90"
               valueLabel={formatMillions(dynamicLossProfile.grossP90)}
               tone="red"
-              description="90th percentile single‑scenario loss before insurance and recovery spend."
+              description="Illustrative per-event P90 severity before modeled risk transfer."
               fraction={Math.min(1, dynamicLossProfile.grossP90 / 250)}
               infoTitle="Gross P90 (FAIR)"
-              infoBody="The 90th percentile loss from FAIR’s Monte Carlo simulation before insurance and recovery. Finance: use it like a conservative VaR for operational risk—90% of outcomes fall below this value."
+              infoBody="Scenario-authored 90th-percentile per-event loss anchor, not an empirically calibrated Monte Carlo result. The tail explorer reconstructs an illustrative severity distribution around that anchor; it is not an annual loss distribution."
               infoBadge="FAIR"
             />
             <MetricCard
@@ -260,7 +217,7 @@ export function MetricsDashboard() {
               description="Estimated residual loss to the firm after modeled insurance and buffers."
               fraction={Math.min(1, dynamicLossProfile.netP90 / 150)}
               infoTitle="Net P90 (FAIR)"
-              infoBody="Residual loss after controls, insurance, and recovery are modeled. The gap between Gross and Net P90 is the risk reduction—the benefit side of ROSI and capital budgeting."
+              infoBody="Scenario-authored residual P90 severity after assumed mitigation and transfer. Its difference from Gross P90 is not annual expected savings and is not used for investment returns; this anchor does not change when a game decision changes LEF."
               infoBadge="FAIR"
             />
             <MetricCard
@@ -278,6 +235,7 @@ export function MetricsDashboard() {
               infoBadge="FAIR"
             />
           </div>
+          <FrequencySourceFacts scenario={scenario} metrics={activeMetrics} />
           <LossTailExplorer
             scenarioId={scenario.id}
             meanLossMillions={dynamicLossProfile.meanLoss}
@@ -443,7 +401,7 @@ export function MetricsDashboard() {
               Control enforcement & investment analysis
               <EduTooltip
                 title="FAIR + FMVA in this tab"
-                body="Here we combine both: FAIR decomposes risk (LEF, LM, control impact) and computes ROSI. FMVA adds 3-statement modeling, DCF valuation, and capital budgeting (NPV, IRR, payback). Risk reduction from FAIR becomes the benefit; control cost is the investment—evaluated with standard finance tools."
+                body="This teaching comparison uses the difference in expected annual loss (baseline versus current modeled posture) as illustrative annual benefit, then compares it with an assumed upfront investment. Gross-versus-net P90 is a severity comparison, not annual benefit. Returns are illustrations, not verified business cases."
                 badge="FAIR"
               />
             </h2>
@@ -454,7 +412,7 @@ export function MetricsDashboard() {
               FAIR risk decomposition
               <EduTooltip
                 title="LEF and Loss Magnitude (for finance folks)"
-                body="FAIR breaks risk into Loss Event Frequency (LEF)—how often per year—and Loss Magnitude (LM)—how much when it happens. LEF comes from Threat Event Frequency and Vulnerability; LM from primary (direct) and secondary (indirect) loss. These feed Monte Carlo simulations to produce the P90 and other percentiles you see elsewhere."
+                body="FAIR distinguishes LEF (successful loss events per year), TEF (attempts) and loss magnitude conditional on an event. Here frequency scales from illustrative indexes and adoption proxies, while P90 severity is an authored anchor. The tail explorer reconstructs a teaching distribution; it is not the output of a complete factor-level FAIR simulation."
                 badge="FAIR"
               />
             </h3>
@@ -485,7 +443,7 @@ export function MetricsDashboard() {
               </div>
             </div>
             <div className="mt-3 pt-3 border-t border-war-border/50">
-              <div className="text-[10px] text-war-muted mb-2">Scenario loss anchors (published case inputs)</div>
+              <div className="text-[10px] text-war-muted mb-2">Scenario-authored loss severity anchors (illustrative)</div>
               <ResponsiveContainer width="100%" height={140}>
                 <BarChart
                   data={[
@@ -510,7 +468,7 @@ export function MetricsDashboard() {
           {/* FMVA 3-Statement Model */}
           <div className="rounded-xl border border-war-border/80 bg-black/60 p-4">
             <h3 className="flex items-center gap-1.5 text-xs font-semibold text-war-white/90 mb-3">
-              FMVA: 3-statement model (5-year forecast)
+              FMVA: Simplified 4-year financial projection
               <EduTooltip
                 title="3-statement model (for risk folks)"
                 body="Standard corporate finance: Income Statement (Revenue, EBITDA), Balance Sheet, and Cash Flow. CFI's FMVA teaches this. Here we project revenue and EBITDA over 5 years. FAIR's loss events would hit these lines (e.g. one-time loss reducing EBITDA); the Revenue at Risk view shows how big that impact could be relative to the P&L."
@@ -609,54 +567,50 @@ export function MetricsDashboard() {
             </ResponsiveContainer>
           </div>
 
-            {/* Control Impact & ROSI */}
-            <div className="rounded-xl border border-war-border/80 bg-black/60 p-4">
+            {/* Scenario counterfactual: use EAL reduction, never a P90 gap */}
+            <div className="border border-war-border/80 bg-black/60 p-4">
               <h3 className="flex items-center gap-1.5 text-xs font-semibold text-war-white/90 mb-3">
-                FAIR: Control impact & ROSI
+                FAIR: Avoided annual loss &amp; illustrative ROSI
                 <EduTooltip
-                  title="ROSI — Return on Security Investment"
-                  body="FAIR quantifies risk before and after controls (e.g. Gross P90 vs Net P90). The difference is risk reduction. ROSI = (risk reduction over time − control cost) / control cost. Finance folks: same idea as ROI—benefit (avoided loss) minus cost, expressed as a return. We use FAIR’s numbers for the benefit side."
+                  title="ROSI — illustrative scenario decision comparison"
+                  body="ROSI here uses avoided expected annual loss (baseline EAL minus current EAL) over three years, less a hypothetical upfront cost. Gross P90 minus Net P90 is not annual savings. The scenario choices and expense proxy are educational, not measured control efficacy."
                   badge="FAIR"
                 />
               </h3>
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-3 text-[10px]">
-                  <div>
-                    <div className="text-war-muted mb-1">Risk before control</div>
-                    <div className="text-sm font-semibold text-red-400">
-                      {formatMillions(dynamicLossProfile.grossP90)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-war-muted mb-1">Risk after control</div>
-                    <div className="text-sm font-semibold text-emerald-400">
-                      {formatMillions(dynamicLossProfile.netP90)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-war-muted mb-1">Delta reduction</div>
-                    <div className="text-sm font-semibold text-war-white">
-                      {formatMillions(dynamicLossProfile.grossP90 - dynamicLossProfile.netP90)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-war-muted mb-1">Control cost (3yr)</div>
-                    <div className="text-sm font-semibold text-war-white">{formatMillions(capitalBudgeting.controlCost3yr)}</div>
+              <div className="grid grid-cols-2 gap-3 text-[10px]">
+                <div>
+                  <div className="text-war-muted mb-1">Starting posture · EAL</div>
+                  <div className="font-mono text-sm font-semibold text-war-white">{formatMillions(capitalBudgeting.baselineEal)}</div>
+                </div>
+                <div>
+                  <div className="text-war-muted mb-1">Current posture · EAL</div>
+                  <div className="font-mono text-sm font-semibold text-war-white">{formatMillions(capitalBudgeting.currentEal)}</div>
+                </div>
+                <div>
+                  <div className="text-war-muted mb-1">Avoided expected loss / year</div>
+                  <div className="font-mono text-sm font-semibold text-emerald-300">
+                    {capitalBudgeting.hasComparison ? formatMillions(capitalBudgeting.annualAvoidedLoss) : "—"}
                   </div>
                 </div>
-                <div className="pt-2 border-t border-war-border/30">
-                  <div className="text-[10px] text-war-muted mb-1">Return on Security Investment (ROSI)</div>
-                  <div className="text-lg font-bold text-emerald-400">
-                    {(capitalBudgeting.controlCost3yr > 0
-                      ? ((dynamicLossProfile.grossP90 - dynamicLossProfile.netP90) * 3 - capitalBudgeting.controlCost3yr) / capitalBudgeting.controlCost3yr * 100
-                      : 0).toFixed(0)}%
-                  </div>
-                  <div className="text-[10px] text-war-muted/80 mt-1">
-                    Net benefit over 3 years: ${((dynamicLossProfile.grossP90 - dynamicLossProfile.netP90) * 3 - capitalBudgeting.controlCost3yr).toFixed(1)}M
-                    <br />
-                    <span className="text-[9px] text-war-muted/60 italic">(Simplified ROSI: assumes deterministic events.) For rigorous comparison, use NPV with your WACC—it accounts for discounting and probability.</span>
-                  </div>
+                <div>
+                  <div className="text-war-muted mb-1">Assumed upfront cost</div>
+                  <div className="font-mono text-sm font-semibold text-war-white">{formatMillions(capitalBudgeting.investmentCost)}</div>
                 </div>
+              </div>
+              <div className="mt-3 border-t border-war-border/60 pt-3">
+                <div className="text-[10px] text-war-muted">Illustrative three-year ROSI</div>
+                <div className="mt-1 font-mono text-lg font-semibold text-war-white">
+                  {capitalBudgeting.rosi !== null ? `${capitalBudgeting.rosi.toFixed(0)}%` : "—"}
+                </div>
+                <p className="mt-1 text-[10px] leading-relaxed text-war-muted">
+                  {capitalBudgeting.hasComparison
+                    ? `Three-year undiscounted net benefit: ${formatMillions(capitalBudgeting.netBenefitThreeYears)}. This comparison holds per-event severity constant.`
+                    : "No change in modeled expected annual loss yet. Select a decision to compare against the starting posture."}
+                </p>
+                <p className="mt-2 text-[9px] text-war-muted/80">
+                  Scenario-assumed avoided EAL; upfront cost of 0.2% of annual revenue.
+                  Excludes implementation timing, recurring costs and verified control performance.
+                </p>
               </div>
             </div>
 
@@ -666,30 +620,30 @@ export function MetricsDashboard() {
                 FMVA: Capital budgeting analysis
                 <EduTooltip
                   title="NPV, IRR, Payback, PI (for risk folks)"
-                  body="Capital budgeting evaluates projects using NPV (net present value), IRR (internal rate of return), payback period, and profitability index (PI). Here the ‘project’ is the security control: cost is the investment; benefit is FAIR’s risk reduction (avoided loss) over the control’s life. Same framework CFI teaches for any capital decision—applied to security investments."
+                  body="This illustrative three-year comparison uses avoided expected annual loss, not Gross P90 minus Net P90. The upfront investment is assumed to be 0.2% of annual revenue. Returns are not a measured investment case. Negative or zero annual benefits have no meaningful positive payback."
                   badge="FMVA"
                 />
               </h3>
               <p className="text-[10px] text-war-muted mb-3">
-                Benefit = annual risk reduction (Gross P90 − Net P90); cost = control investment over 3 years.
+                Benefit = starting expected annual loss − current expected annual loss; upfront cost is a hypothetical investment.
               </p>
               <div className="grid grid-cols-4 gap-3 text-[10px] mb-3">
                 <div className="rounded-lg bg-black/40 p-3 border border-war-border/50">
                   <div className="text-war-muted mb-1">NPV</div>
                   <div className="text-lg font-bold text-emerald-400">
-                    {formatMillions(capitalBudgeting.npv)}
+                    {capitalBudgeting.hasComparison ? formatMillions(capitalBudgeting.npv) : "—"}
                   </div>
                 </div>
                 <div className="rounded-lg bg-black/40 p-3 border border-war-border/50">
                   <div className="text-war-muted mb-1">IRR</div>
                   <div className="text-lg font-bold text-war-white">
-                    {(capitalBudgeting.irr * 100).toFixed(0)}%
+                    {capitalBudgeting.hasComparison && capitalBudgeting.irr !== null ? `${(capitalBudgeting.irr * 100).toFixed(0)}%` : "—"}
                   </div>
                 </div>
                 <div className="rounded-lg bg-black/40 p-3 border border-war-border/50">
                   <div className="text-war-muted mb-1">Payback</div>
                   <div className="text-lg font-bold text-war-white">
-                    {capitalBudgeting.paybackYears < 100
+                    {capitalBudgeting.hasComparison && capitalBudgeting.paybackYears !== null
                       ? capitalBudgeting.paybackYears.toFixed(1) + "yr"
                       : "—"}
                   </div>
@@ -697,12 +651,12 @@ export function MetricsDashboard() {
                 <div className="rounded-lg bg-black/40 p-3 border border-war-border/50">
                   <div className="text-war-muted mb-1">PI</div>
                   <div className="text-lg font-bold text-war-white">
-                    {capitalBudgeting.pi.toFixed(2)}x
+                    {capitalBudgeting.hasComparison && capitalBudgeting.pi !== null ? `${capitalBudgeting.pi.toFixed(2)}x` : "—"}
                   </div>
                 </div>
               </div>
               <div className="text-[10px] text-war-muted">
-                NPV = PV(3yr risk reduction) − control cost; discount rate {(effectiveWacc * 100).toFixed(1)}% (WACC). Control cost ≈ 0.2% of revenue × 3yr.
+                NPV = PV(three annual EAL reductions) − assumed upfront cost; discount rate {(effectiveWacc * 100).toFixed(1)}%. Per-event severity is held constant; this is not a project cash-flow forecast.
               </div>
             </div>
 
@@ -711,7 +665,7 @@ export function MetricsDashboard() {
                 Control adoption rate
                 <EduTooltip
                   title="Control adoption and FAIR"
-                  body="Adoption rate is the percentage of applicable systems or processes where the control is in place. In FAIR, vulnerability (and thus LEF) decreases as adoption increases—fewer successful threat events. Higher adoption generally reduces Gross P90 and improves Net P90 after controls. Target levels (e.g. 85%+) reflect mature security posture."
+                  body="Control adoption is an illustrative scenario score, not calibrated resistance strength. IMPACT uses 100% minus adoption as a vulnerability proxy to scale LEF; it does not dynamically adjust the authored Gross or Net P90 anchors. An 85% target is illustrative, not a universal FAIR threshold."
                   badge="FAIR"
                 />
               </h3>
