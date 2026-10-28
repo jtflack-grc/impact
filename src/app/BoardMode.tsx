@@ -3,6 +3,7 @@ import {
   formatImpactMillions,
 } from "../model/impactAnalysis";
 import { useScenarioStore } from "../store/scenarioStore";
+import { annualProbabilityOfAtLeastOneEvent } from "../model/riskDecisionFinance";
 
 function ExposureMetric({
   label,
@@ -72,6 +73,9 @@ export function BoardMode() {
   const lastChoiceImpact = useScenarioStore((state) => state.lastChoiceImpact);
   const analysis = deriveImpactAnalysis(scenario, activeMetrics);
 
+  const atLeastOneProbability = annualProbabilityOfAtLeastOneEvent(analysis.loss.frequency);
+
+  // Difference between two authored severity anchors, not measured control ROI.
   const riskReduction =
     analysis.loss.grossP90 > 0
       ? ((analysis.loss.grossP90 - analysis.loss.netP90) /
@@ -129,8 +133,8 @@ export function BoardMode() {
             </div>
             <p className="mt-3 max-w-5xl text-lg leading-relaxed text-war-white">
               {scenario.company.name} is carrying a modeled gross P90 cyber loss
-              of {formatImpactMillions(analysis.loss.grossP90)}. Current
-              controls, recovery, and risk transfer reduce that to a residual
+              of {formatImpactMillions(analysis.loss.grossP90)}. The scenario assumes
+              mitigation and risk transfer yielding a residual
               P90 of {formatImpactMillions(analysis.loss.netP90)}, or{" "}
               {residualEbitdaPercent.toFixed(0)}% of annual EBITDA.
             </p>
@@ -139,7 +143,9 @@ export function BoardMode() {
               modeled expected annual loss is{" "}
               {formatImpactMillions(analysis.expectedAnnualLossMillions)} at a
               loss-event frequency of {analysis.loss.frequency.toFixed(2)} per
-              year. The exposure is financially material enough to warrant an
+              year. Under a constant-rate Poisson assumption, the illustrative
+              probability of at least one loss event in the next 12 months is{" "}
+              {(atLeastOneProbability * 100).toFixed(1)}%. The exposure is financially material enough to warrant an
               explicit risk-appetite decision rather than being treated as a
               purely technical security issue.
             </p>
@@ -162,7 +168,7 @@ export function BoardMode() {
             <div className="mt-4 border-t border-war-border pt-4 font-mono text-[10px] text-war-muted">
               Control adoption {activeMetrics.controlAdoption}%
               <br />
-              Modeled gross-to-residual reduction {riskReduction.toFixed(0)}%
+              Scenario gross-to-residual P90 gap {riskReduction.toFixed(0)}%
             </div>
           </div>
         </div>
@@ -218,7 +224,7 @@ export function BoardMode() {
             <ExposureMetric
               label="Loss-event frequency"
               value={`${analysis.loss.frequency.toFixed(2)}/yr`}
-              note={`TEF ${analysis.tefFactor.toFixed(2)}× baseline · vulnerability ${(analysis.vulnerabilityProxy * 100).toFixed(0)}%`}
+              note={`${(atLeastOneProbability * 100).toFixed(1)}% chance of ≥1 event/yr (Poisson); frequency index ${analysis.tefFactor.toFixed(2)}× baseline` }
             />
           </div>
         </div>
@@ -233,8 +239,8 @@ export function BoardMode() {
                 {lastChoiceImpact.summary ??
                   "The latest simulated management action has been applied to the current risk posture."}
                 <div className="mt-4 border-t border-war-border pt-3 font-mono text-[10px] text-war-muted">
-                  Control adoption {activeMetrics.controlAdoption}% · Modeled
-                  risk reduction {riskReduction.toFixed(0)}%
+                  Control adoption proxy {activeMetrics.controlAdoption}% · Scenario
+                  P90 gap {riskReduction.toFixed(0)}%
                 </div>
               </>
             ) : (
@@ -253,8 +259,8 @@ export function BoardMode() {
             label="Residual exposure"
             title={`${formatImpactMillions(analysis.loss.netP90)} remains at P90`}
           >
-            Modeled mitigation removes {riskReduction.toFixed(0)}% of gross P90,
-            but the remaining tail exposure is still equal to{" "}
+            The scenario assumes a residual P90 {riskReduction.toFixed(0)}% below gross P90;
+            that gap is not automatically attributable to the latest decision or equivalent to annual savings. The remaining tail exposure is{" "}
             {residualEbitdaPercent.toFixed(0)}% of annual EBITDA. The governance
             question is whether to accept it, spend more to reduce it, transfer
             more of it, or require additional evidence before deciding.
@@ -274,7 +280,7 @@ export function BoardMode() {
         </div>
 
         <div className="mt-7 border-t border-war-border pt-4 text-[10px] leading-relaxed text-war-muted">
-          Board view intentionally suppresses analyst detail. Return to Analyst
+          All scenario frequencies, severity anchors and control-response indexes are illustrative rather than empirical forecasts. Board view suppresses analyst detail. Return to Analyst
           mode for the full FAIR teaching model, scenario controls, tail lens,
           causal trace, finance modules, and geographic scenario view.
         </div>
