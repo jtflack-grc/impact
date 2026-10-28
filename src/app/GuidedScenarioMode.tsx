@@ -122,7 +122,7 @@ export function GuidedScenarioMode() {
       {
         kicker: "Residual",
         title: `Net P90 ${formatImpactMillions(net)}`,
-        text: `Now consider the scenario-assumed mitigation and transfer. The fixed residual severity anchor, Net P90, is to ${formatImpactMillions(net)}, ${reduction.toFixed(0)} percent below the gross anchor. That gap does not represent annual savings from your most recent control decision. This is the tail exposure leadership still has to be comfortable carrying.`,
+        text: `Now consider the scenario-assumed mitigation and transfer. The fixed residual severity anchor, Net P90, is ${formatImpactMillions(net)}, which is ${reduction.toFixed(0)} percent below the gross anchor. That gap does not represent annual savings from your most recent control decision. This is the tail exposure leadership still has to be comfortable carrying.`,
         focus: "netP90",
       },
       {
