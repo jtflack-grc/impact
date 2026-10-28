@@ -122,13 +122,13 @@ export function GuidedScenarioMode() {
       {
         kicker: "Residual",
         title: `Net P90 ${formatImpactMillions(net)}`,
-        text: `Now let’s give the organization credit for what can actually absorb the hit. After modeled controls, recovery, and risk transfer, Net P90 falls to ${formatImpactMillions(net)}, a ${reduction.toFixed(0)} percent reduction from gross. That’s meaningful, but it doesn’t make the risk disappear. This is the tail exposure leadership still has to be comfortable carrying.`,
+        text: `Now consider the scenario-assumed mitigation and transfer. The fixed residual severity anchor, Net P90, is to ${formatImpactMillions(net)}, ${reduction.toFixed(0)} percent below the gross anchor. That gap does not represent annual savings from your most recent control decision. This is the tail exposure leadership still has to be comfortable carrying.`,
         focus: "netP90",
       },
       {
         kicker: "Frequency",
         title: `LEF ${analysis.loss.frequency.toFixed(2)} per year`,
-        text: `Severity is only half the story. We also care about how often a loss event actually gets through. Right now, the model has threat-event frequency at ${analysis.tefFactor.toFixed(2)} times baseline and vulnerability at ${(analysis.vulnerabilityProxy * 100).toFixed(0)} percent. Together, that puts loss-event frequency at ${analysis.loss.frequency.toFixed(2)} per year and expected annual loss at ${formatImpactMillions(analysis.expectedAnnualLossMillions)}. EAL isn’t a forecasted bill. It’s a way to compare the long-run economic weight of the risk.`,
+        text: `Severity is only half the story. We also care about how often a loss event actually gets through. Right now, the model uses a fictional frequency index at ${analysis.tefFactor.toFixed(2)} times baseline and a vulnerability proxy of ${(analysis.vulnerabilityProxy * 100).toFixed(0)} percent derived from control adoption. Together, those assumptions put loss-event frequency at ${analysis.loss.frequency.toFixed(2)} per year and expected annual loss at ${formatImpactMillions(analysis.expectedAnnualLossMillions)}. EAL isn’t a forecasted bill. It’s a way to compare the long-run economic weight of the risk.`,
         focus: "frequency",
       },
       {
