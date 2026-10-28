@@ -196,8 +196,7 @@ export function WhyDidThisChange() {
                   </>
                 ) : (
                   <>
-                    changes the threat-event-frequency side of the teaching
-                    model. That TEF factor combines with vulnerability to change
+                    changes a scenario frequency index, not a measured threat-attempt rate. The index factor combines with the vulnerability proxy to change
                     LEF and therefore expected annual loss.
                   </>
                 )
